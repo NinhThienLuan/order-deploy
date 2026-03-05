@@ -1,0 +1,390 @@
+/* === Navbar.module.css === */
+
+.nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 80px;
+    background: rgba(250, 249, 246, 0.95);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    z-index: 6000;
+    border-bottom: 1px solid rgba(35, 31, 30, 0.08);
+    transition: height 0.3s cubic-bezier(0.16, 1, 0.3, 1), background 0.3s ease, box-shadow 0.3s ease;
+    display: flex;
+    align-items: center;
+}
+
+.nav.megaOpen {
+    border-bottom-color: transparent;
+}
+
+.nav.scrolled {
+    height: 65px;
+    background: rgba(250, 249, 246, 0.99);
+    box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
+}
+
+.container {
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 0 2.5rem;
+    height: 100%;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+/* ── Logo ── */
+.logo {
+    font-family: var(--font-heading);
+    font-size: 2rem;
+    font-weight: 900;
+    color: var(--color-primary);
+    line-height: 1;
+    text-decoration: none;
+    flex-shrink: 0;
+    transition: opacity 0.2s ease;
+}
+
+.logo:hover {
+    opacity: 0.7;
+}
+
+/* ── Center nav ── */
+.navCenter {
+    display: flex;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    flex: 1;
+    justify-content: center;
+    height: 100%;
+    gap: 0;
+}
+
+.navItem {
+    height: 100%;
+    display: flex;
+    align-items: stretch;
+    position: static;
+}
+
+.navLink {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    padding: 0 1rem;
+    font-family: var(--font-body);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--color-text-main);
+    text-decoration: none;
+    white-space: nowrap;
+    border-bottom: 2px solid transparent;
+    transition: color 0.2s ease, border-color 0.2s ease;
+    box-sizing: border-box;
+}
+
+.navItem:hover .navLink,
+.navItemActive .navLink {
+    color: var(--color-primary);
+    border-bottom-color: var(--color-primary);
+}
+
+/* ── Mega menu ── */
+.megaMenu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    background: rgba(250, 249, 246, 0.99);
+    border-top: 1px solid rgba(35, 31, 30, 0.06);
+    border-bottom: 1px solid rgba(35, 31, 30, 0.08);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.07);
+    animation: megaFadeIn 0.18s ease;
+    z-index: 5999;
+}
+
+@keyframes megaFadeIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.megaInner {
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 2rem 2.5rem;
+}
+
+.megaColumns {
+    display: flex;
+    gap: 3.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid rgba(35, 31, 30, 0.07);
+    flex-wrap: wrap;
+}
+
+.megaCol {
+    min-width: 130px;
+}
+
+.megaHeading {
+    display: block;
+    font-family: var(--font-body);
+    font-size: 0.63rem;
+    font-weight: 800;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    margin-bottom: 0.85rem;
+}
+
+.megaLinks {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.megaLink {
+    font-family: var(--font-body);
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--color-text-main);
+    text-decoration: none;
+    transition: color 0.15s ease;
+}
+
+.megaLink:hover {
+    color: var(--color-primary);
+}
+
+.megaFooter {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    padding-top: 1.25rem;
+}
+
+.megaFooterLink {
+    font-family: var(--font-body);
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--color-text-main);
+    text-decoration: none;
+    padding: 0.45rem 1.1rem;
+    border: 1px solid rgba(35, 31, 30, 0.18);
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+.megaFooterLink:hover {
+    background: var(--color-text-main);
+    color: var(--color-white);
+}
+
+/* ── Right icons ── */
+.navRight {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    flex-shrink: 0;
+}
+
+.iconBtn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--color-text-main);
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.45rem;
+    border-radius: 50%;
+    text-decoration: none;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+.iconBtn:hover {
+    background: rgba(35, 31, 30, 0.06);
+}
+
+.cartBadge {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    min-width: 15px;
+    height: 15px;
+    background: var(--color-primary);
+    color: #fff;
+    font-size: 0.55rem;
+    font-weight: 800;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 2px;
+}
+
+/* ── User avatar ── */
+.userWrap {
+    position: relative;
+}
+
+.userAvatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    color: var(--color-white);
+    font-family: var(--font-body);
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+/* ── User dropdown ── */
+.userDrop {
+    position: absolute;
+    top: calc(100% + 12px);
+    right: 0;
+    min-width: 200px;
+    background: var(--color-white);
+    border: 1px solid var(--color-border-subtle);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+    z-index: 7000;
+    animation: dropIn 0.18s ease;
+}
+
+@keyframes dropIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.dropHeader {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--color-border-subtle);
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.dropName {
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--color-text-main);
+}
+
+.dropRole {
+    font-family: var(--font-body);
+    font-size: 0.65rem;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.dropItem {
+    display: block;
+    padding: 0.75rem 1.25rem;
+    font-family: var(--font-body);
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--color-text-main);
+    text-decoration: none;
+    border-bottom: 1px solid var(--color-border-subtle);
+    transition: background 0.15s ease;
+}
+
+.dropItem:hover {
+    background: rgba(35, 31, 30, 0.04);
+}
+
+.dropLogout {
+    width: 100%;
+    background: none;
+    border: none;
+    padding: 0.85rem 1.25rem;
+    text-align: left;
+    font-family: var(--font-body);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--color-text-main);
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+.dropLogout:hover {
+    background: var(--color-danger-bg);
+    color: var(--color-danger);
+}
+
+/* ── Mobile menu toggle (hidden on desktop) ── */
+.menuToggle {
+    display: none;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--color-text-main);
+    padding: 0.45rem;
+    align-items: center;
+    justify-content: center;
+}
+
+.menuIcon {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.menuIcon span {
+    display: block;
+    width: 20px;
+    height: 2px;
+    background: currentColor;
+    transition: transform 0.3s ease;
+    transform-origin: center;
+}
+
+.menuToggle.active .menuIcon span:first-child {
+    transform: translateY(3.5px) rotate(45deg);
+}
+
+.menuToggle.active .menuIcon span:last-child {
+    transform: translateY(-3.5px) rotate(-45deg);
+}
+
+/* ── Responsive ── */
+@media (max-width: 1024px) {
+    .navCenter {
+        display: none;
+    }
+
+    .menuToggle {
+        display: flex;
+    }
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 0 1.5rem;
+    }
+}

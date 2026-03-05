@@ -1,0 +1,584 @@
+/* ============================================================
+   OrderDetailPage.module.css
+   Design System: FRONTEND_GUIDELINES.md
+   Layout: Screenshot reference (two-column, stepper, timeline)
+   ============================================================ */
+
+/* ── Page ── */
+.page {
+    min-height: 100vh;
+    background: var(--color-bg-main);
+    /* #FAF9F6 */
+    font-family: var(--font-body);
+    padding: 2rem 2.5rem;
+    color: var(--color-text-main);
+}
+
+/* ── Centered layout (Sidebar removed) ── */
+.layout {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+/* ── Card ── */
+.card {
+    background: var(--color-white);
+    /* #FFFFFF */
+    border: var(--border-card);
+    /* 1px solid rgba(35,31,30,0.07) */
+    border-radius: var(--radius-none);
+    /* 0px — editorial */
+    padding: var(--space-card-padding);
+    /* 2rem */
+    margin-bottom: 1rem;
+}
+
+.card:last-child {
+    margin-bottom: 0;
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+.header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    margin: 0 auto 2.5rem auto;
+    padding-top: 4rem;
+    max-width: 1100px;
+}
+
+/* Playfair headline — like card titles in guidelines */
+.pageTitle {
+    font-family: var(--font-heading);
+    font-size: 2.25rem;
+    font-weight: 700;
+    color: var(--color-text-main);
+    margin: 0 0 0.5rem;
+}
+
+.pageSubtitle {
+    font-size: 1.1rem;
+    color: var(--color-text-muted);
+    margin: 0;
+}
+
+/* Ghost button */
+.invoiceBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.9rem 1.8rem;
+    background: transparent;
+    border: 1px solid rgba(35, 31, 30, 0.2);
+    border-radius: var(--radius-none);
+    font-family: var(--font-body);
+    font-size: var(--fs-button);
+    /* 0.72rem */
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: var(--ls-button);
+    /* 2px */
+    color: var(--color-text-main);
+    cursor: pointer;
+    text-decoration: none;
+    transition: border-color var(--transition-fast),
+        color var(--transition-fast),
+        transform var(--transition-fast);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.invoiceBtn:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+    transform: translateY(-2px);
+}
+
+/* ============================================================
+   STATUS BAR
+   ============================================================ */
+.statusBar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.5rem;
+    background: var(--color-bg-offset);
+    /* #EFECE3 */
+    border: none;
+    border-radius: var(--radius-none);
+    margin-bottom: 0;
+    position: sticky;
+    top: 64px;
+    /* Dock exact height directly below the Navbar */
+    z-index: 10;
+    /* Soft fade directly under the bar */
+    box-shadow: 0 4px 15px -5px rgba(35, 31, 30, 0.08);
+    background: rgba(239, 236, 227, 0.95);
+    /* EFECE3 */
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+.statusBarPreparing {
+    background: #d88527 !important;
+    padding-bottom: 1.75rem;
+}
+.statusBarPreparing::after {
+    background: linear-gradient(to bottom, #d88527 0%, rgba(216, 133, 39, 0) 100%) !important;
+}
+.statusBarPreparing .statusIndicator {
+    color: #ffffff;
+}
+.statusBarPreparing .trackingRef {
+    color: rgba(255, 255, 255, 0.75);
+}
+.statusBarPreparing .statusDot {
+    background: #ffffff !important;
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3) !important;
+}
+
+.statusBarDone {
+    background: rgba(210, 237, 218, 0.95) !important;
+}
+.statusBarDone::after {
+    background: linear-gradient(to bottom, rgba(210, 237, 218, 0.95) 0%, rgba(210, 237, 218, 0) 100%) !important;
+}
+
+.statusBarReady {
+    background: rgba(210, 228, 248, 0.95) !important;
+}
+.statusBarReady::after {
+    background: linear-gradient(to bottom, rgba(210, 228, 248, 0.95) 0%, rgba(210, 228, 248, 0) 100%) !important;
+}
+
+/* Strong fade effect that spills BELOW the status bar */
+.statusBar::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    height: 45px;
+    background: linear-gradient(to bottom, rgba(239, 236, 227, 0.95) 0%, rgba(239, 236, 227, 0) 100%);
+    pointer-events: none;
+}
+
+.statusIndicator {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    font-size: var(--fs-body);
+    font-weight: 600;
+    color: var(--color-text-main);
+}
+
+.statusDot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    box-shadow: 0 0 0 3px var(--color-warning-bg);
+    flex-shrink: 0;
+}
+
+.statusDot.preparing {
+    background: #D98324;
+    box-shadow: 0 0 0 3px rgba(217, 131, 36, 0.18);
+}
+
+.statusDot.done {
+    background: var(--color-success);
+    box-shadow: 0 0 0 3px var(--color-success-bg);
+}
+
+.statusDot.ready {
+    background: #1a6ab1;
+    box-shadow: 0 0 0 3px rgba(26, 106, 177, 0.12);
+}
+
+.trackingRef {
+    font-size: var(--fs-label);
+    /* 0.65rem */
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: var(--ls-label);
+    color: var(--color-text-muted);
+}
+
+/* ============================================================
+   STEPPER  (sleek, modern, minimalist)
+   ============================================================ */
+.stepperCard {
+    background: var(--color-bg-main);
+    border: none;
+    border-radius: var(--radius-none);
+    padding: 5.5rem 1rem 2rem 1rem;
+    /* Added generous top padding to escape the status bar fade */
+    margin-bottom: 2rem;
+}
+
+.stepperCardPreparing {
+    background: #d88527;
+    padding-top: 3rem;
+}
+
+/* Connector line — white when amber */
+.stepperCardPreparing .stepper::before {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* Filled connector — white */
+.stepperCardPreparing .step.done + .step::before,
+.stepperCardPreparing .step.active + .step::before {
+    background: rgba(255, 255, 255, 0.85);
+}
+
+/* Pending icon */
+.stepperCardPreparing .stepIcon {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+/* Done / active icon */
+.stepperCardPreparing .step.done .stepIcon {
+    background: #ffffff;
+    border-color: #ffffff;
+    box-shadow: none;
+}
+
+.stepperCardPreparing .step.active .stepIcon {
+    background: #ffffff;
+    border-color: #ffffff;
+    box-shadow: 0 0 0 3px #d88527, 0 0 0 6px #ffffff;
+}
+
+/* Pending label */
+.stepperCardPreparing .stepLabel {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+/* Done / active label */
+.stepperCardPreparing .step.done .stepLabel,
+.stepperCardPreparing .step.active .stepLabel {
+    color: #ffffff;
+}
+
+.stepper {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    position: relative;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+/* Connector line */
+.stepper::before {
+    content: '';
+    position: absolute;
+    top: 6px;
+    left: 10%;
+    right: 10%;
+    height: 1px;
+    background: var(--color-border-default);
+    z-index: 0;
+}
+
+.step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+    position: relative;
+    z-index: 1;
+    gap: 0.8rem;
+}
+
+/* Orange fill on connector for done + active steps */
+.step.done+.step::before,
+.step.active+.step::before {
+    content: '';
+    position: absolute;
+    top: 6px;
+    right: 50%;
+    width: 100%;
+    height: 1px;
+    background: var(--color-primary);
+    z-index: 0;
+}
+
+/* Sleek diamond/square dot */
+.stepIcon {
+    width: 12px;
+    height: 12px;
+    border-radius: 0;
+    background: var(--color-bg-main);
+    border: 1.5px solid var(--color-border-default);
+    transform: rotate(45deg);
+    transition: all var(--transition-base);
+    position: relative;
+    z-index: 1;
+}
+
+.step.done .stepIcon {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+}
+
+.step.active .stepIcon {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px var(--color-bg-main), 0 0 0 6px var(--color-primary);
+}
+
+/* Labels */
+.stepLabel {
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--color-text-muted);
+    text-align: center;
+}
+
+.stepSub {
+    display: none;
+}
+
+.step.done .stepLabel,
+.step.active .stepLabel {
+    color: var(--color-text-main);
+}
+
+/* ============================================================
+   ADDRESSES
+   ============================================================ */
+.addressGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+}
+
+.addressTitle {
+    font-size: var(--fs-label);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: var(--ls-label);
+    color: var(--color-text-muted);
+    margin-bottom: 0.9rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.editBtn {
+    font-size: var(--fs-label);
+    color: var(--color-primary);
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    transition: opacity var(--transition-fast);
+}
+
+.editBtn:hover {
+    opacity: 0.65;
+}
+
+.addressName {
+    font-family: var(--font-body);
+    font-size: var(--fs-body);
+    font-weight: 700;
+    color: var(--color-text-main);
+    margin-bottom: 0.4rem;
+}
+
+.addressText {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    line-height: 1.7;
+}
+
+/* ============================================================
+   ORDER ITEMS
+   ============================================================ */
+.sectionTitle {
+    font-size: var(--fs-label);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: var(--ls-label);
+    color: var(--color-text-muted);
+    padding-bottom: 0.85rem;
+    border-bottom: 1px solid var(--color-border-subtle);
+    margin-bottom: 0.5rem;
+}
+
+.itemRow {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.itemRow:last-child {
+    border-bottom: none;
+}
+
+/* Square thumbnail — 0px radius */
+.itemThumb {
+    width: 54px;
+    height: 54px;
+    border-radius: var(--radius-none);
+    object-fit: cover;
+    background: var(--color-bg-offset);
+    flex-shrink: 0;
+    border: 1px solid var(--color-border-default);
+}
+
+.itemInfo {
+    flex: 1;
+}
+
+.itemCategory {
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--color-primary);
+    font-weight: 700;
+    margin-bottom: 0.2rem;
+    opacity: 0.8;
+}
+
+.itemName {
+    font-size: var(--fs-body);
+    font-weight: 700;
+    color: var(--color-text-main);
+    margin-bottom: 0.2rem;
+}
+
+.itemMeta {
+    font-size: 0.72rem;
+    color: var(--color-text-muted);
+}
+
+.itemPrice {
+    font-family: var(--font-heading);
+    /* Playfair for prices */
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--color-text-main);
+    white-space: nowrap;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.itemQty {
+    font-size: var(--fs-label);
+    color: var(--color-text-muted);
+    text-align: right;
+    margin-bottom: 0.2rem;
+    font-weight: 600;
+}
+
+/* ============================================================
+   ORDER SUMMARY
+   ============================================================ */
+.summaryRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.65rem 0;
+    border-bottom: 1px solid var(--color-border-subtle);
+    font-size: var(--fs-body);
+}
+
+.summaryRow:last-child {
+    border-bottom: none;
+}
+
+.summaryLabel {
+    color: var(--color-text-muted);
+}
+
+.summaryMeta {
+    font-size: var(--fs-label);
+    color: var(--color-text-muted);
+    margin-top: 0.15rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.summaryValue {
+    font-weight: 700;
+    color: var(--color-text-main);
+    font-variant-numeric: tabular-nums;
+}
+
+.summaryValue.discount {
+    color: var(--color-danger);
+}
+
+/* #C0392B */
+
+.summaryTotal {
+    border-top: 1px solid var(--color-border-default) !important;
+    margin-top: 0.5rem !important;
+    padding-top: 1rem !important;
+    font-weight: 800;
+    font-size: 0.95rem;
+    font-family: var(--font-heading);
+    color: var(--color-text-main);
+}
+
+/* ============================================================
+   CANCEL SECTION
+   ============================================================ */
+.cancelSection {
+    margin-top: 0;
+}
+
+
+
+/* ============================================================
+   LOADING / ERROR
+   ============================================================ */
+.loadingState,
+.errorState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 50vh;
+    gap: 1rem;
+    color: var(--color-text-muted);
+    font-size: var(--fs-body);
+    font-family: var(--font-body);
+}
+
+.spinner {
+    width: 28px;
+    height: 28px;
+    border: 2px solid var(--color-border-default);
+    border-top-color: var(--color-primary);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}

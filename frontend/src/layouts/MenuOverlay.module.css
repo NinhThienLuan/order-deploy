@@ -1,0 +1,134 @@
+/* === MenuOverlay.module.css === */
+
+.overlay {
+    position: fixed;
+    inset: 0;
+    background: var(--color-bg-main);
+    z-index: 5000;
+    opacity: 0;
+    visibility: hidden;
+    padding-top: 80px;
+    transition: opacity 0.5s cubic-bezier(0.165, 0.84, 0.44, 1),
+        visibility 0.5s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+.overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.content {
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 0 5rem;
+    height: calc(100vh - 80px);
+    display: flex;
+    align-items: center;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+    gap: 5rem;
+}
+
+/* Left column — primary links */
+.primaryNav {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    align-items: flex-start;
+}
+
+.primaryLink {
+    font-family: var(--font-body);
+    font-size: clamp(2.5rem, 5vw, 3.5rem);
+    font-weight: 800;
+    color: var(--color-text-main);
+    text-decoration: none;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    line-height: 1.1;
+    position: relative;
+    padding-bottom: 5px;
+    transition: color 0.35s ease;
+}
+
+.primaryLink::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 0;
+    height: 3px;
+    background: var(--color-primary);
+    transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.primaryLink:hover {
+    color: var(--color-primary);
+}
+
+.primaryLink:hover::after {
+    width: 100%;
+}
+
+/* Right column — page archive */
+.rightCol {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    border-left: 1px solid rgba(35, 31, 30, 0.06);
+    padding-left: 5rem;
+}
+
+.archiveLabel {
+    font-size: 0.65rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    color: var(--color-primary);
+    opacity: 0.6;
+    margin-bottom: 1.5rem;
+    font-family: var(--font-body);
+}
+
+.pageLinks {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    align-items: flex-start;
+}
+
+.pageLink {
+    font-family: var(--font-body);
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--color-text-main);
+    text-decoration: none;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    position: relative;
+    padding-bottom: 3px;
+    transition: color 0.3s ease;
+}
+
+.pageLink::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: var(--color-primary);
+    transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.pageLink:hover {
+    color: var(--color-primary);
+}
+
+.pageLink:hover::after {
+    width: 100%;
+}

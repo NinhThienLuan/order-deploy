@@ -1,0 +1,77 @@
+/* ==========================================================
+   DESIGN SYSTEM — CSS Custom Properties
+   Source: FRONTEND_GUIDELINES.md
+   ========================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Inter:wght@400;500;600;800&display=swap');
+
+:root {
+  /* --- Brand Colors --- */
+  --color-primary: #D98324;
+  --color-secondary: #E8C595;
+
+  /* --- Background / Surface --- */
+  --color-bg-main: #FAF9F6;
+  --color-bg-offset: #EFECE3;
+  --color-white: #FFFFFF;
+
+  /* --- Text --- */
+  --color-text-main: #231F1E;
+  --color-text-muted: rgba(35, 31, 30, 0.6);
+
+  /* --- Borders --- */
+  --color-border-subtle: rgba(35, 31, 30, 0.07);
+  --color-border-default: rgba(35, 31, 30, 0.15);
+
+  /* --- Semantic --- */
+  --color-success: #27AE60;
+  --color-success-bg: rgba(39, 174, 96, 0.1);
+  --color-success-text: #1a7a42;
+  --color-danger: #C0392B;
+  --color-danger-bg: rgba(192, 57, 43, 0.1);
+  --color-warning-bg: rgba(217, 131, 36, 0.12);
+  --color-neutral-bg: rgba(35, 31, 30, 0.06);
+
+  /* --- Sidebar --- */
+  --color-sidebar-bg: #231F1E;
+  --color-sidebar-active-bg: rgba(217, 131, 36, 0.1);
+
+  /* --- Typography --- */
+  --font-heading: 'Playfair Display', serif;
+  --font-body: 'Inter', sans-serif;
+
+  /* --- Font Sizes --- */
+  --fs-page-title: clamp(2.5rem, 5vw, 7.5rem);
+  --fs-card-title: 1.4rem;
+  --fs-label: 0.65rem;
+  --fs-body: 0.875rem;
+  --fs-button: 0.72rem;
+  --fs-table-header: 0.62rem;
+
+  /* --- Letter Spacing --- */
+  --ls-label: 2.5px;
+  --ls-button: 2px;
+  --ls-table: 2.5px;
+
+  /* --- Shadows --- */
+  --shadow-btn-hover: 0px 8px 25px rgba(217, 131, 36, 0.2);
+  --shadow-focus-ring: 0 0 0 3px rgba(217, 131, 36, 0.08);
+  --shadow-card: 0 1px 4px rgba(35, 31, 30, 0.06);
+
+  /* --- Spacing --- */
+  --space-card-padding: 2rem;
+  --space-form-padding: 0.8rem 1rem;
+
+  /* --- Borders / Radii --- */
+  --radius-none: 0px;
+  --border-card: 1px solid var(--color-border-subtle);
+  --border-input: 1px solid var(--color-border-default);
+  --border-active: 1px solid var(--color-primary);
+
+  /* --- Sidebar --- */
+  --sidebar-width: 260px;
+
+  /* --- Transitions --- */
+  --transition-fast: 0.18s ease;
+  --transition-base: 0.25s ease;
+}

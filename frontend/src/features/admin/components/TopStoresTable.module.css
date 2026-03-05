@@ -1,0 +1,72 @@
+.tableSection {
+  background: var(--color-white);
+  border: var(--border-card);
+  padding: var(--space-card-padding);
+}
+
+.tableTitle {
+  font-family: var(--font-heading);
+  font-size: var(--fs-card-title);
+  color: var(--color-text-main);
+  margin-bottom: 1.5rem;
+  font-weight: 700;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th {
+  font-family: var(--font-body);
+  font-size: var(--fs-table-header);
+  letter-spacing: var(--ls-table);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  text-align: left;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--color-border-default);
+  font-weight: 600;
+}
+
+.table td {
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+  color: var(--color-text-main);
+  padding: 1rem;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.table tbody tr:hover {
+  background: var(--color-bg-offset);
+}
+
+/* Status badges */
+.badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  font-size: var(--fs-label);
+  letter-spacing: var(--ls-label);
+  text-transform: uppercase;
+  font-weight: 600;
+  border: 1px solid;
+  font-family: var(--font-body);
+}
+
+.badgeExcellent {
+  color: var(--color-success-text);
+  background: var(--color-success-bg);
+  border-color: var(--color-success-text);
+}
+
+.badgeGood {
+  color: var(--color-primary);
+  background: var(--color-warning-bg);
+  border-color: var(--color-primary);
+}
+
+.badgeAttention {
+  color: var(--color-text-muted);
+  background: var(--color-neutral-bg);
+  border-color: var(--color-border-default);
+}

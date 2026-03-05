@@ -1,0 +1,150 @@
+/* === VisitSection.module.css — pixel-perfect match to attempt-2/style.css ===
+   #visit: .immersive-section (lines 236-266 in HTML)
+   background-color: var(--primary) / color: var(--white) / padding: 10rem 0
+   .visit-card (lines 809-814): backdrop-filter, padding: 4rem, border
+   .visit-card-title (lines 816-822)
+   .grid-2 (lines 573-578)
+*/
+
+.section {
+    background-color: #D98324;
+    /* --primary */
+    color: #FFFFFF;
+    padding: 10rem 0;
+    /* No border-bottom in original */
+}
+
+.container {
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 0 5rem;
+}
+
+/* .grid-2: grid-template-columns: 1fr 1fr; gap: 6rem; align-items: center */
+.grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6rem;
+    align-items: center;
+}
+
+/* Left text */
+.tag {
+    display: block;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #E8C595;
+    /* --secondary */
+    font-weight: 600;
+    opacity: 0.8;
+    margin-bottom: 1rem;
+    font-family: 'Inter', sans-serif;
+}
+
+.title {
+    font-family: 'Playfair Display', serif;
+    font-size: 3.5rem;
+    /* .section-title */
+    line-height: 1.1;
+    color: #FFFFFF;
+    text-transform: uppercase;
+    font-weight: 900;
+    margin-bottom: 2rem;
+}
+
+/* contact-info div: font-serif, 3rem, line-height: 1.2, margin-bottom: 3rem */
+.venues {
+    font-family: 'Playfair Display', serif;
+    font-size: 3rem;
+    line-height: 1.2;
+    margin-bottom: 3rem;
+    color: #FFFFFF;
+}
+
+/* .visit-card */
+.card {
+    background: rgba(0, 0, 0, 0.1);
+    padding: 4rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    will-change: transform, opacity;
+    backface-visibility: hidden;
+}
+
+/* section-tag inside visit-card: color white, opacity 0.8, font-size: 0.7rem */
+.cardTag {
+    display: block;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    color: #FFFFFF;
+    opacity: 0.8;
+}
+
+/* .visit-card-title */
+.cardTitle {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    font-weight: 700;
+    margin: 1.5rem 0 2.5rem;
+    letter-spacing: 1px;
+    color: #FFFFFF;
+}
+
+.cardActions {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+/* "Find a Store" btn — white bg */
+.btnSolid {
+    display: block;
+    padding: 1.2rem;
+    background: #FFFFFF;
+    color: #231F1E;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    text-decoration: none;
+    text-align: center;
+    transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btnSolid:hover {
+    background: #D98324;
+    color: #FFFFFF;
+    transform: translateY(-3px);
+    box-shadow: 0 15px 40px rgba(217, 131, 36, 0.2);
+}
+
+/* "Seasonal Menu" btn — transparent with white border */
+.btnOutline {
+    display: block;
+    padding: 1.2rem;
+    background: rgba(255, 255, 255, 0.1);
+    color: #FFFFFF;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 500;
+    /* btn-secondary doesn't have 800 */
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    text-decoration: none;
+    text-align: center;
+    transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btnOutline:hover {
+    background: #D98324;
+    color: #FFFFFF;
+    border-color: #D98324;
+    transform: translateY(-3px);
+}

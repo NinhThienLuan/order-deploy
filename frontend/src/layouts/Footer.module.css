@@ -1,0 +1,114 @@
+/* === Footer.module.css — pixel-perfect match to attempt-2/style.css ===
+   .footer lines 906-978
+*/
+
+.footer {
+    background: #EFECE3;
+    /* --bg-offset */
+    padding: 6rem 0 3rem;
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    font-family: var(--font-body);
+}
+
+.container {
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 0 5rem;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 4rem;
+    margin-bottom: 4rem;
+}
+
+/* Brand column */
+.logo {
+    font-family: var(--font-heading);
+    /* --font-serif */
+    font-size: 1.2rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--color-primary);
+    margin-bottom: 1.5rem;
+}
+
+.tagline {
+    color: rgba(35, 31, 30, 0.6);
+    /* --text-muted */
+    font-size: 0.9rem;
+    max-width: 300px;
+    font-style: italic;
+}
+
+/* Link columns */
+.colHeading {
+    font-family: var(--font-body);
+    /* --font-sans */
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 2rem;
+    color: var(--color-text-main);
+    font-weight: 500;
+    /* h4 default from style.css */
+}
+
+.linkList {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    /* li has margin-bottom: 1rem */
+}
+
+.linkList li {
+    margin-bottom: 1rem;
+}
+
+.linkList a {
+    font-size: 0.9rem;
+    color: rgba(35, 31, 30, 0.6);
+    /* --text-muted */
+    text-decoration: none;
+    position: relative;
+    padding-bottom: 2px;
+    transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.linkList a::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 0;
+    height: 1px;
+    background: var(--color-primary);
+    transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.linkList a:hover {
+    color: var(--color-primary);
+}
+
+.linkList a:hover::after {
+    width: 100%;
+}
+
+/* Bottom bar */
+.bottom {
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    padding-top: 2rem;
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: rgba(35, 31, 30, 0.6);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.bottomRight {
+    display: flex;
+    gap: 2rem;
+}

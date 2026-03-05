@@ -1,0 +1,127 @@
+/* === NarrativeSection.module.css — pixel-perfect match to attempt-2/style.css ===
+   #narrative: .immersive-section.full-bleed-section (lines 128-144 in HTML)
+   .full-bleed-section (lines 539-544)
+   .full-bleed-grid (lines 546-550)
+   .full-bleed-grid .image-wrapper (lines 552-555)
+   .full-bleed-grid .immersive-image (lines 557-562)
+   .full-bleed-grid .immersive-content (lines 564-571)
+   .section-tag (lines 592-600)
+   .section-title (lines 602-606)
+   .section-desc (lines 608-612)
+   .btn (lines 437-453)
+*/
+
+.section {
+    height: 100vh;
+    background-color: #EFECE3;
+    /* --bg-offset */
+    padding: 0 !important;
+    border-bottom: 2px solid #231F1E;
+    overflow: hidden;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    height: 100%;
+}
+
+/* image on left by default (narrative) */
+.imageWrapper {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    will-change: transform, opacity;
+    backface-visibility: hidden;
+}
+
+.image {
+    width: 100%;
+    height: 100%;
+    aspect-ratio: unset;
+    border-radius: 0;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.7s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+.imageWrapper:hover .image {
+    transform: scale(1.03);
+}
+
+.content {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 120px 15% 10% 15%;
+    max-width: unset;
+    will-change: transform, opacity;
+    backface-visibility: hidden;
+}
+
+/* .section-tag */
+.tag {
+    display: block;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #E8C595;
+    /* --secondary */
+    font-weight: 600;
+    margin-bottom: 1rem;
+    font-family: 'Inter', sans-serif;
+}
+
+/* .section-title */
+.title {
+    font-family: 'Playfair Display', serif;
+    font-size: 3.5rem;
+    line-height: 1.1;
+    margin-bottom: 1.5rem;
+    color: #231F1E;
+    /* --text-main */
+    text-transform: uppercase;
+    font-weight: 900;
+}
+
+/* .section-desc */
+.desc {
+    font-size: 1.1rem;
+    color: rgba(35, 31, 30, 0.6);
+    /* --text-muted */
+    margin-bottom: 2.5rem;
+    font-family: 'Inter', sans-serif;
+    line-height: 1.7;
+}
+
+.italic {
+    font-style: italic;
+}
+
+/* .btn */
+.btn {
+    display: inline-block;
+    padding: 1.1rem 3.2rem;
+    border: none;
+    background: #231F1E;
+    /* --text-main */
+    color: #FFFFFF;
+    text-decoration: none;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    cursor: pointer;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    align-self: flex-start;
+}
+
+.btn:hover {
+    background: #D98324;
+    /* --primary */
+    color: #FFFFFF;
+    transform: translateY(-3px);
+    box-shadow: 0 15px 40px rgba(217, 131, 36, 0.2);
+}

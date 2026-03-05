@@ -1,0 +1,265 @@
+/* ── OrderReceiptPage ────────────────────────────────────── */
+.page {
+    min-height: 100vh;
+    background: #f8f6f3;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 120px 24px 80px;
+}
+
+.card {
+    background: #fff;
+    border: 1px solid #e8e4df;
+    max-width: 560px;
+    width: 100%;
+    padding: 48px 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+/* ── Success icon ── */
+.iconWrap {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: #231F1E;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 24px;
+    animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes popIn {
+    from {
+        transform: scale(0.5);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.checkIcon {
+    width: 32px;
+    height: 32px;
+    stroke: #fff;
+    stroke-width: 2.5;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 60;
+    stroke-dashoffset: 60;
+    animation: drawCheck 0.4s 0.2s ease forwards;
+}
+
+@keyframes drawCheck {
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
+.title {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #231F1E;
+    margin: 0 0 8px;
+}
+
+.subtitle {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9rem;
+    color: #888;
+    margin: 0 0 32px;
+}
+
+/* ── Divider ── */
+.divider {
+    width: 100%;
+    border: none;
+    border-top: 1px solid #e8e4df;
+    margin: 0 0 24px;
+}
+
+/* ── Meta row ── */
+.meta {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.82rem;
+}
+
+.metaLabel {
+    color: #aaa;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.metaValue {
+    color: #231F1E;
+    font-weight: 600;
+}
+
+/* ── Items ── */
+.itemList {
+    width: 100%;
+    margin: 16px 0 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.itemRow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-align: left;
+}
+
+.itemThumb {
+    width: 44px;
+    height: 44px;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.itemInfo {
+    flex: 1;
+    min-width: 0;
+}
+
+.itemName {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #231F1E;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.itemQty {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.75rem;
+    color: #aaa;
+}
+
+.itemPrice {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #231F1E;
+    flex-shrink: 0;
+}
+
+/* ── Total row ── */
+.totalRow {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding-top: 16px;
+    border-top: 1px solid #e8e4df;
+    margin-bottom: 32px;
+}
+
+.totalLabel {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #231F1E;
+}
+
+.totalValue {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #231F1E;
+}
+
+/* ── Actions ── */
+.actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+}
+
+.primaryBtn {
+    display: block;
+    width: 100%;
+    padding: 14px;
+    background: #231F1E;
+    color: #fff;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    text-decoration: none;
+    text-align: center;
+    transition: background 0.15s;
+}
+
+.primaryBtn:hover {
+    background: #3a3532;
+}
+
+.secondaryBtn {
+    display: block;
+    width: 100%;
+    padding: 13px;
+    background: transparent;
+    color: #231F1E;
+    border: 1px solid #231F1E;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    text-decoration: none;
+    text-align: center;
+    transition: background 0.15s, color 0.15s;
+}
+
+.secondaryBtn:hover {
+    background: #231F1E;
+    color: #fff;
+}
+
+/* ── Loading/Error ── */
+.stateBox {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 60px 24px;
+    color: #888;
+    font-family: 'Inter', sans-serif;
+}
+
+.spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid #e0ddd9;
+    border-top-color: #231F1E;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}

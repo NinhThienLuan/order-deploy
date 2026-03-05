@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <title>WebSocket Order Tracking - Test Page</title>
+    <!-- SockJS + STOMP client libraries (CDN) -->
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            padding: 24px;
+        }
+
+        h1 {
+            color: #38bdf8;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: #94a3b8;
+            margin-bottom: 24px;
+        }
+
+        .container {
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+
+        .panel {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 20px;
+            flex: 1;
+            min-width: 350px;
+        }
+
+        .panel h2 {
+            color: #7dd3fc;
+            margin-bottom: 16px;
+            font-size: 16px;
+        }
+
+        label {
+            display: block;
+            color: #94a3b8;
+            font-size: 13px;
+            margin-bottom: 4px;
+            margin-top: 12px;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: 1px solid #334155;
+            background: #0f172a;
+            color: #e2e8f0;
+            font-size: 14px;
+        }
+
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: #38bdf8;
+        }
+
+        button {
+            margin-top: 16px;
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .btn-connect {
+            background: #22c55e;
+            color: #fff;
+        }
+
+        .btn-connect:hover {
+            background: #16a34a;
+        }
+
+        .btn-disconnect {
+            background: #ef4444;
+            color: #fff;
+        }
+
+        .btn-disconnect:hover {
+            background: #dc2626;
+        }
+
+        .btn-subscribe {
+            background: #3b82f6;
+            color: #fff;
+        }
+
+        .btn-subscribe:hover {
+            background: #2563eb;
+        }
+
+        .btn-update {
+            background: #f59e0b;
+            color: #000;
+        }
+
+        .btn-update:hover {
+            background: #d97706;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+
+        .status.connected {
+            background: #22c55e33;
+            color: #22c55e;
+        }
+
+        .status.disconnected {
+            background: #ef444433;
+            color: #ef4444;
+        }
+
+        #log {
+            background: #0f172a;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 12px;
+            height: 400px;
+            overflow-y: auto;
+            font-family: 'Consolas', monospace;
+            font-size: 13px;
+            border: 1px solid #334155;
+        }
+
+        .log-entry {
+            padding: 6px 0;
+            border-bottom: 1px solid #1e293b;
+        }
+
+        .log-time {
+            color: #64748b;
+        }
+
+        .log-info {
+            color: #38bdf8;
+        }
+
+        .log-success {
+            color: #22c55e;
+        }
+
+        .log-error {
+            color: #ef4444;
+        }
+
+        .log-message {
+            color: #fbbf24;
+        }
+
+        .tracking-card {
+            background: #0f172a;
+            border-left: 3px solid #22c55e;
+            padding: 12px;
+            margin-top: 8px;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .tracking-card .status-change {
+            font-size: 18px;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .tracking-card .detail {
+            color: #94a3b8;
+            font-size: 13px;
+            margin-top: 4px;
+        }
+
+        .step {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            color: #94a3b8;
+            font-size: 13px;
+        }
+
+        .step-num {
+            background: #334155;
+            color: #38bdf8;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🔌 WebSocket Order Tracking Test</h1>
+    <p class="subtitle">Test real-time order status updates via STOMP over WebSocket</p>
+
+    <div class="container">
+        <!-- Panel 1: Connection -->
+        <div class="panel">
+            <h2>① CONNECT WebSocket
+                <span id="statusBadge" class="status disconnected">DISCONNECTED</span>
+            </h2>
+
+            <label>Server URL</label>
+            <input id="serverUrl" value="http://localhost:8080/ws" />
+
+            <button id="btnConnect" class="btn-connect" onclick="connect()">Connect</button>
+            <button id="btnDisconnect" class="btn-disconnect" onclick="disconnect()"
+                style="display:none">Disconnect</button>
+
+            <h2 style="margin-top: 24px;">② SUBSCRIBE to Order</h2>
+            <label>Order ID (UUID)</label>
+            <input id="orderId" placeholder="paste order UUID here..." />
+            <button class="btn-subscribe" onclick="subscribe()">Subscribe</button>
+
+            <h2 style="margin-top: 24px;">③ UPDATE Status (simulate Admin)</h2>
+            <div class="step">
+                <span class="step-num">!</span>
+                Cần JWT token của Admin/Store Manager
+            </div>
+            <label>Admin JWT Token</label>
+            <input id="adminToken" placeholder="paste admin JWT token..." />
+            <label>New Status</label>
+            <select id="newStatus">
+                <option value="PREPARING">PREPARING</option>
+                <option value="READY">READY</option>
+                <option value="COMPLETED">COMPLETED</option>
+            </select>
+            <button class="btn-update" onclick="updateStatus()">PATCH Update Status</button>
+        </div>
+
+        <!-- Panel 2: Log -->
+        <div class="panel">
+            <h2>📡 Live Log</h2>
+            <div class="step">
+                <span class="step-num">1</span> Connect WebSocket
+            </div>
+            <div class="step">
+                <span class="step-num">2</span> Subscribe với Order ID
+            </div>
+            <div class="step">
+                <span class="step-num">3</span> Gọi PATCH trên Swagger hoặc bấm Update bên trái
+            </div>
+            <div class="step">
+                <span class="step-num">4</span> Xem message real-time xuất hiện bên dưới ↓
+            </div>
+            <div id="log"></div>
+            <button style="background:#334155; color:#94a3b8; margin-top:8px;" onclick="clearLog()">Clear Log</button>
+        </div>
+    </div>
+
+    <script>
+        let stompClient = null;
+        let subscriptions = {};
+
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const time = new Date().toLocaleTimeString('vi-VN');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.innerHTML = `<span class="log-time">[${time}]</span> <span class="log-${type}">${message}</span>`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+
+        function updateBadge(connected) {
+            const badge = document.getElementById('statusBadge');
+            badge.textContent = connected ? 'CONNECTED' : 'DISCONNECTED';
+            badge.className = connected ? 'status connected' : 'status disconnected';
+            document.getElementById('btnConnect').style.display = connected ? 'none' : 'block';
+            document.getElementById('btnDisconnect').style.display = connected ? 'block' : 'none';
+        }
+
+        // ========== 1. CONNECT ==========
+        function connect() {
+            const url = document.getElementById('serverUrl').value;
+            log(`Connecting to ${url} ...`);
+
+            // SockJS tạo WebSocket connection (tự fallback nếu WS không khả dụng)
+            const socket = new SockJS(url);
+
+            // STOMP client wrap trên SockJS connection
+            stompClient = Stomp.over(socket);
+
+            // Tắt debug log mặc định của STOMP (quá verbose)
+            stompClient.debug = (msg) => {
+                if (msg.includes('CONNECTED') || msg.includes('ERROR')) {
+                    log(msg, msg.includes('ERROR') ? 'error' : 'success');
+                }
+            };
+
+            stompClient.connect(
+                {},  // headers (không cần auth cho WebSocket handshake)
+                // onConnect callback
+                (frame) => {
+                    log('✅ WebSocket CONNECTED!', 'success');
+                    log('STOMP frame: ' + frame, 'info');
+                    updateBadge(true);
+                },
+                // onError callback
+                (error) => {
+                    log('❌ Connection error: ' + error, 'error');
+                    updateBadge(false);
+                }
+            );
+        }
+
+        // ========== 2. DISCONNECT ==========
+        function disconnect() {
+            if (stompClient) {
+                stompClient.disconnect(() => {
+                    log('🔌 Disconnected', 'error');
+                    updateBadge(false);
+                });
+            }
+        }
+
+        // ========== 3. SUBSCRIBE ==========
+        function subscribe() {
+            const orderId = document.getElementById('orderId').value.trim();
+            if (!orderId) { alert('Nhập Order ID!'); return; }
+            if (!stompClient || !stompClient.connected) { alert('Connect WebSocket trước!'); return; }
+
+            const topic = '/topic/orders/' + orderId;
+
+            // Hủy subscription cũ nếu có
+            if (subscriptions[orderId]) {
+                subscriptions[orderId].unsubscribe();
+                log(`Unsubscribed from ${topic}`, 'info');
+            }
+
+            // Subscribe — callback sẽ được gọi MỖI KHI server push message tới topic này
+            subscriptions[orderId] = stompClient.subscribe(topic, (message) => {
+                const data = JSON.parse(message.body);
+                log('📦 TRACKING UPDATE RECEIVED:', 'message');
+
+                const logDiv = document.getElementById('log');
+                const card = document.createElement('div');
+                card.className = 'tracking-card';
+                card.innerHTML = `
+                    <div class="status-change">${data.previousStatus} → ${data.currentStatus}</div>
+                    <div class="detail">📝 ${data.message}</div>
+                    <div class="detail">🕐 ${data.updatedAt}</div>
+                    <div class="detail">👤 Updated by: ${data.updatedBy || 'System'}</div>
+                    <div class="detail">🆔 Order: ${data.orderId}</div>
+                `;
+                logDiv.appendChild(card);
+                logDiv.scrollTop = logDiv.scrollHeight;
+            });
+
+            log(`✅ Subscribed to ${topic}`, 'success');
+            log('Waiting for tracking updates... (go update status on Swagger!)', 'info');
+        }
+
+        // ========== 4. UPDATE STATUS (REST API call) ==========
+        async function updateStatus() {
+            const orderId = document.getElementById('orderId').value.trim();
+            const token = document.getElementById('adminToken').value.trim();
+            const status = document.getElementById('newStatus').value;
+
+            if (!orderId) { alert('Nhập Order ID!'); return; }
+            if (!token) { alert('Nhập Admin JWT Token!'); return; }
+
+            const url = `http://localhost:8080/v1/orders/${orderId}/status`;
+            log(`📤 PATCH ${url} { status: "${status}" }`, 'info');
+
+            try {
+                const res = await fetch(url, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify({ status })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    log(`✅ API Response: ${data.message}`, 'success');
+                } else {
+                    log(`❌ API Error: ${JSON.stringify(data)}`, 'error');
+                }
+            } catch (err) {
+                log(`❌ Fetch error: ${err.message}`, 'error');
+            }
+        }
+    </script>
+</body>
+
+</html>

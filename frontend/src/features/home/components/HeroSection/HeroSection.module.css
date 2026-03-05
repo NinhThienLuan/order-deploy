@@ -1,0 +1,40 @@
+.heroClassic {
+    position: relative;
+    background-image:
+        linear-gradient(rgba(35, 31, 30, 0.4), rgba(35, 31, 30, 0.2)),
+        url('https://images.unsplash.com/photo-1497935586351-b67a49e012bf?auto=format&fit=crop&w=1600&q=80');
+    background-size: cover;
+    background-position: center;
+    height: 75vh;
+    min-height: 500px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: var(--color-white);
+    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 6vw), 50% 100%, 0 calc(100% - 6vw));
+    margin-bottom: -6vw;
+    z-index: 3;
+    padding-bottom: 6vw;
+}
+
+.heroClassic h1 {
+    font-family: var(--font-heading);
+    font-size: clamp(3.5rem, 8vw, 7rem);
+    margin: 0;
+    font-weight: 900;
+    line-height: 1;
+    text-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    color: var(--color-white);
+}
+
+.heroClassic p {
+    font-family: var(--font-body);
+    font-size: 1.1rem;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    margin-top: 1.5rem;
+    font-weight: 600;
+    color: var(--color-secondary);
+}
