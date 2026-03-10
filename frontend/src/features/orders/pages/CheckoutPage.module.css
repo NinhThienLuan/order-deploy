@@ -1,0 +1,310 @@
+/* === CheckoutPage.module.css === */
+
+.page {
+    min-height: 100vh;
+    background: var(--color-bg-main, #FAF9F6);
+    font-family: var(--font-body);
+    padding: 60px 2.5rem 4rem;
+    color: var(--color-text-main);
+}
+
+.layout {
+    display: grid;
+    grid-template-columns: 1fr 400px;
+    gap: 3rem;
+    max-width: 1300px;
+    margin: 0 auto;
+    align-items: flex-start;
+}
+
+/* White Container for Focus */
+.formSection {
+    background: var(--color-white, #FFFFFF);
+    padding: 3.5rem;
+    border: 1px solid rgba(35, 31, 30, 0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 2.5rem;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.02);
+}
+
+.mainHeading {
+    font-family: var(--font-heading);
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin: 0;
+    color: var(--color-text-main);
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(35, 31, 30, 0.05);
+}
+
+.formColumns {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 3.5rem;
+}
+
+.column {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.sectionTitle {
+    font-family: var(--font-heading);
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--color-text-main);
+    margin: 0 0 0.5rem 0;
+}
+
+/* ── Form Controls ── */
+.formGroup {
+    width: 100%;
+}
+
+.input,
+.select,
+.textarea {
+    width: 100%;
+    padding: 0.8rem 1rem;
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    color: var(--color-text-main);
+    background: var(--color-white);
+    border: 1px solid rgba(35, 31, 30, 0.15);
+    border-radius: 0;
+    outline: none;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+}
+
+.input:focus,
+.select:focus,
+.textarea:focus {
+    border-color: var(--color-primary);
+}
+
+.textarea {
+    min-height: 100px;
+    resize: vertical;
+}
+
+/* ── Read-only user info rows ── */
+.infoReadOnly {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background: var(--color-bg-offset, #FAF9F6);
+    border: 1px solid rgba(35, 31, 30, 0.1);
+    box-sizing: border-box;
+}
+
+.infoLabel {
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-text-muted, #888);
+}
+
+.infoValue {
+    font-size: 0.9rem;
+    color: var(--color-text-main);
+}
+
+/* ── Methods Card ── */
+.radioCardBorder {
+    border: 1px solid rgba(35, 31, 30, 0.1);
+    background: var(--color-bg-offset, #FAF9F6);
+    padding: 1.25rem;
+}
+
+.radioOption {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.radioOption label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.mutedText {
+    color: var(--color-text-muted);
+    font-weight: 400;
+    margin-left: auto;
+}
+
+/* ── Summary Column ── */
+.summaryColumn {
+    position: sticky;
+    top: 80px;
+    /* Offset for better visibility or Navbar */
+    align-self: flex-start;
+}
+
+.summaryCard {
+    background: transparent;
+    padding-left: 2rem;
+}
+
+.summaryTitle {
+    font-family: var(--font-body);
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+}
+
+.itemList {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    margin-bottom: 2rem;
+}
+
+.itemRow {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.itemThumbWrap {
+    position: relative;
+    width: 50px;
+    height: 50px;
+}
+
+.itemThumb {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border: 1px solid rgba(35, 31, 30, 0.07);
+}
+
+.itemBadge {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    background: var(--color-primary);
+    color: white;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    font-size: 0.65rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.itemInfo {
+    flex: 1;
+}
+
+.itemName {
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 0.1rem;
+}
+
+.itemCategory {
+    font-size: 0.7rem;
+    color: var(--color-text-muted);
+}
+
+.itemPriceText {
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+
+.calcRows {
+    border-top: 1px solid rgba(35, 31, 30, 0.07);
+    padding-top: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.calcRow {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+    font-size: 0.9rem;
+}
+
+.totalRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.totalValue {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--color-primary);
+}
+
+.actionsRow {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.primaryBtn {
+    width: 100%;
+    padding: 1rem;
+    background: var(--color-text-main);
+    color: white;
+    border: none;
+    font-weight: 800;
+    letter-spacing: 1px;
+    cursor: pointer;
+}
+
+.primaryBtn:hover {
+    background: var(--color-primary);
+}
+
+.backLink {
+    text-align: center;
+    color: var(--color-text-muted);
+    font-size: 0.85rem;
+    text-decoration: none;
+}
+
+.errorMsg {
+    margin-top: 1rem;
+    color: #e74c3c;
+    font-size: 0.85rem;
+    text-align: center;
+}
+
+.emptyCard {
+    text-align: center;
+    padding: 5rem;
+}
+
+@media (max-width: 1024px) {
+    .layout {
+        grid-template-columns: 1fr;
+    }
+
+    .formSection {
+        padding: 2rem;
+    }
+
+    .formColumns {
+        grid-template-columns: 1fr;
+        gap: 2.5rem;
+    }
+
+    .summaryCard {
+        border-left: none;
+        padding-left: 0;
+        border-top: 1px solid rgba(35, 31, 30, 0.07);
+        padding-top: 2rem;
+    }
+}

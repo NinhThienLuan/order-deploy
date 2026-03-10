@@ -1,0 +1,342 @@
+/* ── AdminOrderDetailPage.module.css ── */
+.content {
+    animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.dashboardGrid {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 2rem;
+    margin-top: 2rem;
+    align-items: start;
+}
+
+.mainCol {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.card {
+    background: #FFFFFF;
+    border: 1px solid rgba(35, 31, 30, 0.06);
+    padding: 2rem;
+}
+
+.sectionTitle {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #231F1E;
+    margin: 0 0 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+/* Stepper */
+.stepperContainer {
+    display: flex;
+    justify-content: space-between;
+    position: relative;
+    padding: 1rem 0;
+}
+
+.step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    position: relative;
+    z-index: 2;
+    flex: 1;
+}
+
+.stepIndicator {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #F3F4F6;
+    color: #9CA3AF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+    border: 2px solid #FFFFFF;
+}
+
+.stepActive .stepIndicator {
+    background: #D98324;
+    color: #FFFFFF;
+    box-shadow: 0 0 0 4px rgba(217, 131, 36, 0.15);
+}
+
+.stepDone .stepIndicator {
+    background: #231F1E;
+    color: #FFFFFF;
+}
+
+.activeDot {
+    width: 8px;
+    height: 8px;
+    background: #FFFFFF;
+    border-radius: 50%;
+}
+
+.stepLabel {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #9CA3AF;
+}
+
+.stepActive .stepLabel {
+    color: #D98324;
+}
+
+.stepDone .stepLabel {
+    color: #231F1E;
+}
+
+/* Item List */
+.itemList {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.itemRow {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid rgba(35, 31, 30, 0.04);
+}
+
+.itemRow:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.itemThumbWrap {
+    width: 64px;
+    height: 64px;
+    background: #FAF9F6;
+    flex-shrink: 0;
+}
+
+.itemThumb {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.itemDetails {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.itemCategory {
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #D98324;
+}
+
+.itemName {
+    font-weight: 600;
+    color: #231F1E;
+    font-size: 0.95rem;
+}
+
+.itemNote {
+    font-size: 0.8rem;
+    color: #6B7280;
+    font-style: italic;
+}
+
+.itemPricing {
+    text-align: right;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.itemMath {
+    font-size: 0.75rem;
+    color: #9CA3AF;
+}
+
+.itemTotal {
+    font-weight: 700;
+    color: #231F1E;
+}
+
+/* Summary */
+.summaryList {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.summaryRow {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+    color: #6B7280;
+}
+
+.summaryDiscount {
+    color: #059669;
+}
+
+.summaryGrandTotal {
+    margin-top: 1rem;
+    padding-top: 1.5rem;
+    border-top: 2px solid #231F1E;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-weight: 700;
+    color: #231F1E;
+    font-size: 1rem;
+}
+
+.grandTotalVal {
+    font-size: 1.5rem;
+}
+
+/* Address */
+.addressBlock {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.addressLabel {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #9CA3AF;
+}
+
+.addressName {
+    font-weight: 700;
+    color: #231F1E;
+    font-size: 0.95rem;
+}
+
+.addressText {
+    font-size: 0.9rem;
+    color: #6B7280;
+    line-height: 1.5;
+}
+
+.addressDivider {
+    height: 1px;
+    background: rgba(35, 31, 30, 0.05);
+    margin: 1.5rem 0;
+}
+
+/* Status Card */
+.sideCol {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    position: sticky;
+    top: 2rem;
+}
+
+.statusCard {
+    background: #231F1E;
+    color: #FFFFFF;
+    border: none;
+}
+
+.statusHeader {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-weight: 700;
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 1.5rem;
+}
+
+.statusDot {
+    width: 10px;
+    height: 10px;
+    background: #D98324;
+    border-radius: 50%;
+    box-shadow: 0 0 10px #D98324;
+}
+
+.statusTracking {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.trackingLabel {
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.4);
+    letter-spacing: 0.1em;
+}
+
+.trackingId {
+    font-family: monospace;
+    font-size: 0.85rem;
+}
+
+/* Payment Details */
+.paymentDetails {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.payMetaRow {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+}
+
+.payMetaLabel {
+    color: #9CA3AF;
+}
+
+.payMetaVal {
+    font-weight: 600;
+    color: #231F1E;
+}
+
+.paySuccess {
+    color: #059669;
+}
+
+.payWarning {
+    color: #D97706;
+}
+
+@media (max-width: 1024px) {
+    .dashboardGrid {
+        grid-template-columns: 1fr;
+    }
+    .sideCol {
+        position: static;
+    }
+}

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import Navbar from '../../../layouts/Navbar';
+import Navbar from '@/layouts/Navbar';
 import styles from './PaymentResultPage.module.css';
 
 const METHOD_LABELS = { VNPAY: 'VNPay', MOMO: 'MoMo' };
@@ -62,7 +62,7 @@ const PaymentResultPage = () => {
         }
         setStatus('processing');
         try {
-            const { confirmPayment: confirm } = await import('../../orders/orders.service');
+            const { confirmPayment: confirm } = await import('@/features/orders/services/order.service');
             await confirm(orderId, paymentId, success);
             setStatus(success ? 'success' : 'failed');
             setTimeout(() => navigate(`/orders/${orderId}`, { replace: true }), 1500);

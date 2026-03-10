@@ -18,6 +18,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -31,6 +32,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/payments")
 @RequiredArgsConstructor
+@Slf4j
 @Tag(name = "Payments", description = "Payment methods, history, status, creation, and gateway webhooks")
 public class PaymentController {
 
@@ -40,7 +42,7 @@ public class PaymentController {
         private final VNPayService vnPayService;
         private final VNPayConfig vnPayConfig;
 
-        @Value("${momo.return-url:http://localhost:3000/payment/result}")
+        @Value("${momo.frontend-url:${momo.return-url:http://localhost:3000/payment/result}}")
         private String frontendReturnBase;
 
         /**
@@ -107,7 +109,7 @@ public class PaymentController {
         @Operation(summary = "Get payment status", description = "Returns the current payment status for a given order. Customers may only view their own orders.")
         @PreAuthorize("hasAnyRole('CUSTOMER', 'FRANCHISE_ADMIN', 'STORE_MANAGER')")
         public ResponseEntity<ApiResponse<PaymentStatusResponse>> getPaymentStatus(
-                        @PathVariable String orderId,
+                        @PathVariable("orderId") String orderId,
                         HttpServletRequest request) {
                 UUID orderUuid;
                 try {
@@ -168,18 +170,25 @@ public class PaymentController {
         }
 
         @GetMapping("/vnpay-return")
-        @Operation(summary = "VNPay return redirect", description = "VNPay redirects the user here after payment. Redirects to frontend success or failure page.")
         public ResponseEntity<Void> handleReturn(
                         @RequestParam Map<String, String> params) {
-                boolean valid = !vnPayConfig.isVerifySignature() || vnPayService.verifySignature(params);
+
+                boolean valid = vnPayService.verifySignature(params);
                 boolean success = "00".equals(params.get("vnp_ResponseCode"));
 
-                // Derive frontend base from momo.return-url (e.g.
-                // http://host:3000/payment/result → http://host:3000)
-                String frontendBase = frontendReturnBase.replaceAll("/payment/.*$", "");
-                String redirect = (valid && success)
-                                ? frontendBase + "/payment/success"
-                                : frontendBase + "/payment/failed";
+                // BE xử lý luôn — không cần FE làm gì
+                if (valid) {
+                        try {
+                                paymentService.processWebhook(params);
+                        } catch (Exception e) {
+                                // Idempotent: webhook có thể đã xử lý trước rồi → bỏ qua
+                        }
+                }
+
+                String redirect = frontendReturnBase
+                                + "?success=" + (valid && success)
+                                + "&code=" + params.getOrDefault("vnp_ResponseCode", "99")
+                                + "&orderId=" + params.getOrDefault("vnp_TxnRef", "");
 
                 return ResponseEntity.status(HttpStatus.FOUND)
                                 .header("Location", redirect)

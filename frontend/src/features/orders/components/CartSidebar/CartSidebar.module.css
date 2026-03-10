@@ -1,0 +1,320 @@
+/* === CartSidebar.module.css ===
+   Design system: FRONTEND_GUIDELINES.md
+   - 0px border-radius (editorial)
+   - Amber primary, Playfair for prices
+   - bg-main / bg-offset palette
+*/
+
+/* Backdrop */
+.backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(35, 31, 30, 0.4);
+    z-index: 7000;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.35s ease, visibility 0.35s ease;
+}
+
+.backdrop.open {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Drawer */
+.drawer {
+    position: fixed;
+    top: 0;
+    right: 0;
+    height: 100%;
+    width: 420px;
+    max-width: 100vw;
+    background: var(--color-bg-main);
+    z-index: 7001;
+    display: flex;
+    flex-direction: column;
+    transform: translateX(100%);
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    border-left: 1px solid rgba(35, 31, 30, 0.07);
+}
+
+.drawer.open {
+    transform: translateX(0);
+}
+
+/* Header */
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid rgba(35, 31, 30, 0.07);
+    flex-shrink: 0;
+}
+
+.title {
+    font-family: var(--font-heading);
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--color-text-main);
+    margin: 0;
+}
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    background: var(--color-primary);
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 800;
+    border-radius: 50%;
+    margin-left: 0.5rem;
+}
+
+.closeBtn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--color-text-muted);
+    padding: 0.4rem;
+    line-height: 1;
+    transition: color 0.2s ease;
+}
+
+.closeBtn:hover {
+    color: var(--color-text-main);
+}
+
+/* Items list */
+.itemList {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem 2rem;
+}
+
+.itemWrapper {
+    border-bottom: 1px solid rgba(35, 31, 30, 0.05);
+}
+
+.itemWrapper:last-child {
+    border-bottom: none;
+}
+
+.itemRow {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 0;
+}
+
+/* Variant selector styles moved to CartItemVariantDropdown.module.css */
+
+/* Square thumbnail */
+.thumb {
+    width: 52px;
+    height: 52px;
+    object-fit: cover;
+    border-radius: var(--radius-none);
+    border: 1px solid rgba(35, 31, 30, 0.07);
+    flex-shrink: 0;
+    background: var(--color-bg-offset);
+}
+
+.itemMain {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.itemControls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.itemName {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--color-text-main);
+    line-height: 1.3;
+    margin-bottom: 0;
+}
+
+.itemVariant {
+    display: block;
+    font-size: 0.65rem;
+    font-weight: 500;
+    color: var(--color-text-muted);
+    margin-top: 0.1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.itemCategory {
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--color-primary);
+    font-weight: 700;
+    opacity: 0.75;
+}
+
+/* Qty controls */
+.qtyBlock {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-shrink: 0;
+}
+
+.qtyBtn {
+    width: 26px;
+    height: 26px;
+    border: 1px solid rgba(35, 31, 30, 0.12);
+    background: var(--color-white);
+    border-radius: var(--radius-none);
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--color-text-main);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s ease, border-color 0.2s ease;
+    line-height: 1;
+}
+
+.qtyBtn:hover {
+    background: var(--color-primary);
+    color: #fff;
+    border-color: var(--color-primary);
+}
+
+.qty {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--color-text-main);
+    min-width: 20px;
+    text-align: center;
+}
+
+.linePrice {
+    font-family: var(--font-heading);
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--color-text-main);
+    white-space: nowrap;
+    min-width: 80px;
+    text-align: right;
+    flex-shrink: 0;
+}
+
+/* Empty state */
+.empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    gap: 0.75rem;
+    color: var(--color-text-muted);
+    font-size: 0.85rem;
+    padding: 3rem;
+    text-align: center;
+}
+
+.emptyIcon {
+    font-size: 2.5rem;
+    opacity: 0.35;
+}
+
+/* Footer */
+.footer {
+    border-top: 1px solid rgba(35, 31, 30, 0.07);
+    padding: 1.5rem 2rem;
+    flex-shrink: 0;
+    background: var(--color-bg-offset);
+}
+
+.subtotalRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.25rem;
+}
+
+.subtotalLabel {
+    font-size: var(--fs-label);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: var(--ls-label);
+    color: var(--color-text-muted);
+}
+
+.subtotalValue {
+    font-family: var(--font-heading);
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--color-text-main);
+}
+
+.confirmBtn {
+    display: block;
+    width: 100%;
+    padding: 1.1rem;
+    background: var(--color-text-main);
+    color: #fff;
+    font-family: var(--font-body);
+    font-size: var(--fs-button);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: var(--ls-button);
+    border: none;
+    cursor: pointer;
+    border-radius: var(--radius-none);
+    transition: background 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.confirmBtn:hover:not(:disabled) {
+    background: var(--color-primary);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-btn-hover);
+}
+
+.confirmBtn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.confirmBtn.loading {
+    background: var(--color-primary);
+    pointer-events: none;
+}
+
+.clearBtn {
+    display: block;
+    width: 100%;
+    padding: 0.7rem;
+    margin-top: 0.6rem;
+    background: transparent;
+    color: var(--color-text-muted);
+    font-family: var(--font-body);
+    font-size: var(--fs-label);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: var(--ls-label);
+    border: none;
+    cursor: pointer;
+    text-align: center;
+    transition: color 0.2s ease;
+}
+
+.clearBtn:hover {
+    color: var(--color-danger, #C0392B);
+}

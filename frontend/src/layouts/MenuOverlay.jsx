@@ -1,5 +1,5 @@
 import styles from './MenuOverlay.module.css';
-import { OVERLAY_PRIMARY_LINKS, OVERLAY_PAGE_LINKS } from '../features/landing/landing.constants';
+import { OVERLAY_PRIMARY_LINKS, OVERLAY_PAGE_LINKS } from '@/features/storefront/constants/landing.constants';
 
 const MenuOverlay = ({ isOpen, onClose }) => (
     <div

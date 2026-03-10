@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import Navbar from '../../../layouts/Navbar';
-import Footer from '../../../layouts/Footer';
-import { useCart } from '../../cart/CartContext';
-import { getProductById, getProducts } from '../products.service';
+import Navbar from '@/layouts/Navbar';
+import Footer from '@/layouts/Footer';
+import { useCart } from '@/features/orders/services/CartContext';
+import { getProductById, getProducts } from '@/features/products/services/products.service';
 import styles from './ProductDetailPage.module.css';
 
 const formatVND = (n) =>
@@ -18,6 +18,8 @@ export default function ProductDetailPage() {
     const [product, setProduct] = useState(null);
     const [related, setRelated] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [selectedImage, setSelectedImage] = useState(null);
+    const [selectedVariant, setSelectedVariant] = useState(null);
 
     useEffect(() => {
         setLoading(true);
@@ -26,6 +28,10 @@ export default function ProductDetailPage() {
         getProductById(id)
             .then((p) => {
                 setProduct(p);
+                setSelectedImage(p.imageUrl);
+                // Set default variant (first active)
+                const firstActive = p.variants?.find(v => v.active);
+                setSelectedVariant(firstActive || null);
                 if (p.categoryId) {
                     getProducts({ categoryId: p.categoryId, size: 5 })
                         .then((data) => setRelated(data.content.filter((r) => r.id !== p.id).slice(0, 4)))
@@ -49,26 +55,22 @@ export default function ProductDetailPage() {
         return (
             <>
                 <Navbar />
-                <div className={styles.notFound}>
-                    <p className={styles.notFoundText}>Product not found.</p>
-                    <Link to="/menu" className={styles.backLink}>← Back to Menu</Link>
-                </div>
             </>
         );
     }
 
-    const isOut = product.status === 'OutOfStock';
-    const isInCart = items.some((i) => i.id === product.id);
+    const isOut = product.status === 'OutOfStock' || (product.variants && !product.variants.some(v => v.active));
+    const isInCart = items.some((i) => i.id === product.id && i.variantId === (selectedVariant?.id || null));
 
     const handleAdd = () => {
-        if (isOut) return;
+        if (isOut || !selectedVariant) return;
         addItem({
             id: product.id,
             productName: product.productName,
             imageUrl: product.imageUrl,
-            price: product.price,
+            price: selectedVariant.price,
             category: product.categoryName,
-        }, qty);
+        }, qty, selectedVariant);
     };
 
     return (
@@ -78,23 +80,7 @@ export default function ProductDetailPage() {
             <div className={styles.page}>
 
                 {/* ── Breadcrumb ── */}
-                <div className={styles.breadcrumbWrap}>
-                    <div className={styles.breadcrumbInner}>
-                        <button className={styles.backBtn} onClick={() => navigate(-1)}>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <polyline points="15 18 9 12 15 6" />
-                            </svg>
-                            Back
-                        </button>
-                        <nav className={styles.breadcrumb}>
-                            <Link to="/" className={styles.crumb}>Home</Link>
-                            <span className={styles.crumbSep}>/</span>
-                            <Link to="/menu" className={styles.crumb}>Menu</Link>
-                            <span className={styles.crumbSep}>/</span>
-                            <span className={styles.crumbCurrent}>{product.productName}</span>
-                        </nav>
-                    </div>
-                </div>
+                
 
                 {/* ── Main Detail ── */}
                 <section className={styles.detail}>
@@ -104,7 +90,7 @@ export default function ProductDetailPage() {
                         <div className={styles.imageCol}>
                             <div className={`${styles.imageFrame} ${isOut ? styles.imageFrameOut : ''}`}>
                                 <img
-                                    src={product.imageUrl || 'https://placehold.co/600x600/EFECE3/231F1E?text=No+Image'}
+                                    src={selectedImage || 'https://placehold.co/600x600/EFECE3/231F1E?text=No+Image'}
                                     alt={product.productName}
                                     className={styles.image}
                                     onError={(e) => { e.target.src = 'https://placehold.co/600x600/EFECE3/231F1E?text=No+Image'; }}
@@ -116,24 +102,60 @@ export default function ProductDetailPage() {
                                     <span className={`${styles.badge} ${styles.badgeOut}`}>Out of Stock</span>
                                 )}
                             </div>
+
+                            {/* Thumbnail Gallery */}
+                            {product.images && product.images.length > 1 && (
+                                <div className={styles.thumbnailRow}>
+                                    {product.images.map((img, idx) => {
+                                        const isSelected = img.imageUrl === selectedImage;
+                                        return (
+                                            <button
+                                                key={idx}
+                                                className={`${styles.thumbnailBtn} ${isSelected ? styles.thumbnailActive : ''}`}
+                                                onClick={() => setSelectedImage(img.imageUrl)}
+                                                aria-label={`View image ${idx + 1}`}
+                                            >
+                                                <img 
+                                                    src={img.imageUrl} 
+                                                    alt={`Thumbnail ${idx + 1} for ${product.productName}`}
+                                                    className={styles.thumbnailImg}
+                                                    loading="lazy"
+                                                />
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            )}
                         </div>
 
                         {/* Right — Info */}
                         <div className={styles.infoCol}>
-                            <span className={styles.categoryTag}>{product.categoryName}</span>
                             <h1 className={styles.productName}>{product.productName}</h1>
-                            <p className={styles.price}>{formatVND(product.price)}</p>
+                            <span className={styles.categoryTag}>by {product.categoryName}</span>
+                            <p className={styles.price}>{formatVND(selectedVariant?.price || product.price)}</p>
 
-                            {product.description && (
-                                <p className={styles.description}>{product.description}</p>
+                            {/* Variation Selection (Sizes) */}
+                            {product.variants && product.variants.length > 1 && (
+                                <div className={styles.variantSection}>
+                                    <p className={styles.variantLabel}>Select Size</p>
+                                    <div className={styles.variantGrid}>
+                                        {product.variants.map((v) => (
+                                            <button
+                                                key={v.id}
+                                                className={`${styles.variantBtn} ${selectedVariant?.id === v.id ? styles.variantBtnActive : ''} ${!v.active ? styles.variantBtnDisabled : ''}`}
+                                                onClick={() => v.active && setSelectedVariant(v)}
+                                                disabled={!v.active}
+                                            >
+                                                {v.sizeName}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
                             )}
 
-                            <div className={styles.divider} />
-
-                            {/* Quantity */}
+                            {/* Quantity Row */}
                             {!isOut && (
-                                <div className={styles.qtyRow}>
-                                    <span className={styles.qtyLabel}>Quantity</span>
+                                <div className={styles.qtyRowWrapper}>
                                     <div className={styles.qtyControls}>
                                         <button
                                             className={styles.qtyBtn}
@@ -147,23 +169,39 @@ export default function ProductDetailPage() {
                                             aria-label="Increase quantity"
                                         >+</button>
                                     </div>
+                                    <span className={styles.qtyPriceInline}>{formatVND((selectedVariant?.price || product.price) * qty)}</span>
                                 </div>
                             )}
 
-                            {/* Add to Cart */}
-                            <button
-                                className={`${styles.addBtn} ${isOut ? styles.addBtnDisabled : ''} ${isInCart && !isOut ? styles.addBtnAdded : ''}`}
-                                onClick={handleAdd}
-                                disabled={isOut}
-                            >
-                                {isOut
-                                    ? 'Out of Stock'
-                                    : isInCart
-                                        ? '✓ Added to Cart'
-                                        : 'Add to Cart'}
-                            </button>
+                            {/* Actions Row */}
+                            <div className={styles.actionRow}>
+                                <button
+                                    className={styles.buyBtn}
+                                    onClick={handleAdd}
+                                    disabled={isOut}
+                                >
+                                    BUY NOW
+                                </button>
+                                <button
+                                    className={`${styles.addBtn} ${isOut ? styles.addBtnDisabled : ''} ${isInCart && !isOut ? styles.addBtnAdded : ''}`}
+                                    onClick={handleAdd}
+                                    disabled={isOut}
+                                >
+                                    {isOut
+                                        ? 'Out of Stock'
+                                        : isInCart
+                                            ? '✓ Added to Cart'
+                                            : 'ADD TO CART'}
+                                </button>
+                            </div>
 
-                            {/* Meta */}
+                            <div className={styles.divider} />
+
+                            {/* Description & Meta */}
+                            {product.description && (
+                                <p className={styles.description}>{product.description}</p>
+                            )}
+
                             <dl className={styles.meta}>
                                 <div className={styles.metaRow}>
                                     <dt className={styles.metaKey}>Category</dt>
@@ -174,10 +212,6 @@ export default function ProductDetailPage() {
                                     <dd className={`${styles.metaVal} ${isOut ? styles.metaValOut : styles.metaValAvail}`}>
                                         {isOut ? 'Out of Stock' : 'Available'}
                                     </dd>
-                                </div>
-                                <div className={styles.metaRow}>
-                                    <dt className={styles.metaKey}>SKU</dt>
-                                    <dd className={styles.metaVal}>{String(product.id).toUpperCase()}</dd>
                                 </div>
                             </dl>
                         </div>

@@ -1,14 +1,16 @@
-
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import './index.css';
 
-import { CartProvider } from './features/cart/CartContext';
-import { AuthProvider } from './features/auth/AuthContext';
-import CartSidebar from './features/cart/components/CartSidebar/CartSidebar';
+import { CartProvider } from '@/features/orders/services/CartContext';
+import { AuthProvider } from '@/features/authentication/services/AuthContext';
+import CartSidebar from '@/features/orders/components/CartSidebar';
 
 import { ROUTES, ADMIN_ROUTES, ACCESS } from './routes/routes.config';
 import ProtectedRoute from './routes/ProtectedRoute';
 import AdminLayout from './layouts/AdminLayout';
+
+// Import trang OnlineOrder
+import OnlineOrderPage from '@/features/onlineOrder/pages/OnlineOrderManagementPage';
 
 const NotFound = () => (
   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', fontFamily: 'Inter, sans-serif', color: '#231F1E' }}>
@@ -52,7 +54,16 @@ function App() {
               ))}
             </Route>
 
-            {/* Catch-all */}
+            <Route
+              path="/online-order"
+              element={
+                <ProtectedRoute
+                  element={<OnlineOrderPage />}
+                  access={[ACCESS.ADMIN, ACCESS.STORE_MANAGER]}
+                />
+              }
+            />
+
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

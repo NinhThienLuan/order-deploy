@@ -15,11 +15,15 @@ apiClient.interceptors.response.use(
   (error) => {
     const status = error.response?.status;
     if (status === 401 || status === 403) {
-      console.warn(`[apiClient] ${status} - Redirecting to login`);
+      console.warn(`[apiClient] ${status} - Session expired or unauthorized. Redirecting to login.`);
+      
+      // Clear all auth data immediately
       localStorage.removeItem('auth_user');
-
+      
+      // Force a full page reload to the login page to kill all stale state
       if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
-        window.location.href = '/login';
+        const from = window.location.pathname + window.location.search;
+        window.location.href = `/login?from=${encodeURIComponent(from)}`;
       }
     }
     return Promise.reject(error);

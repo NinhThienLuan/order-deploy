@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { getAllOrders } from '../orders.service';
-import { STATUS_LABELS, ORDER_FILTERS } from '../orders.constants';
-import Navbar from '../../../layouts/Navbar';
+import { getAllOrders } from '@/features/orders/services/order.service';
+import { STATUS_LABELS, ORDER_FILTERS } from '@/features/orders/services/order.constants';
+import Navbar from '@/layouts/Navbar';
 import styles from './OrderListPage.module.css';
 
 const formatVND = (n) =>

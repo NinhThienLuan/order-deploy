@@ -1,0 +1,110 @@
+.tableContainer {
+  background: #FFFFFF;
+  border: 1px solid rgba(35, 31, 30, 0.07);
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'Inter', sans-serif;
+}
+
+.table th {
+  text-align: left;
+  padding: 1rem 1.5rem;
+  background: #EFECE3;
+  font-size: 0.62rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 2.5px;
+  color: rgba(35, 31, 30, 0.6);
+  border-bottom: 1px solid rgba(35, 31, 30, 0.07);
+}
+
+.table td {
+  padding: 1.5rem;
+  border-bottom: 1px solid rgba(35, 31, 30, 0.07);
+  font-size: 0.85rem;
+  color: #231F1E;
+}
+
+.orderId {
+  font-weight: 600;
+  color: #D98324;
+}
+
+.customerInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.customerName {
+  font-weight: 500;
+}
+
+.customerPhone {
+  font-size: 0.75rem;
+  color: rgba(35, 31, 30, 0.6);
+}
+
+.orderTime {
+  font-size: 0.85rem;
+  color: rgba(35, 31, 30, 0.6);
+}
+
+.itemsList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.item {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.85rem;
+}
+
+.itemName {
+  color: #231F1E;
+}
+
+.itemQuantity {
+  color: rgba(35, 31, 30, 0.6);
+  font-size: 0.75rem;
+}
+
+.note {
+  font-style: italic;
+  color: rgba(35, 31, 30, 0.6);
+  font-size: 0.8rem;
+}
+
+.noNote {
+  color: rgba(35, 31, 30, 0.3);
+  font-style: italic;
+}
+
+.totalAmount {
+  font-weight: 600;
+  color: #231F1E;
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .table th,
+  .table td {
+    padding: 1rem;
+  }
+  
+  .actions {
+    flex-direction: column;
+  }
+}

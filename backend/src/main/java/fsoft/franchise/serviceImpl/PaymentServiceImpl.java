@@ -18,6 +18,7 @@ import fsoft.franchise.service.VNPayService;
 import fsoft.franchise.service.OrderTrackingService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -35,14 +36,10 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class PaymentServiceImpl implements PaymentService {
 
         private static final int MAX_PAGE_SIZE = 50;
-        /**
-         * USD → VND conversion rate used when sending amounts to VNPay/MoMo (both
-         * require VND integers).
-         */
-        private static final long USD_TO_VND = 25_000L;
 
         private final PaymentRepository paymentRepository;
         private final TransactionRepository transactionRepository;
@@ -53,7 +50,7 @@ public class PaymentServiceImpl implements PaymentService {
         private final OrderTrackingService orderTrackingService;
 
         public PaymentListResponse getPayments(PaymentFilterRequest filter,
-                                               UUID currentUserId, String role) {
+                        UUID currentUserId, String role) {
 
                 // 1. Clamp page size, 1-based page for API
                 int size = Math.min(Math.max(1, filter.getSize()), MAX_PAGE_SIZE);
@@ -121,68 +118,66 @@ public class PaymentServiceImpl implements PaymentService {
                 OrderEntity order = orderRepository.findById(request.orderId())
                                 .orElseThrow(() -> new ApiException(OrderErrorCode.ORDER_NOT_FOUND, "Order not found"));
 
-                // 2. Check duplicate Pending payment for this order
-                boolean hasPending = paymentRepository
-                                .existsByOrder_IdAndStatus(request.orderId(), PaymentStatus.PENDING);
-                if (hasPending)
-                        throw new ApiException(PaymentErrorCode.PAYMENT_PROVIDER_ERROR,
-                                        "Payment already exists for this order");
-
-                // 3. Enforce idempotency on transactionId/vnp_TxnRef across the whole system
-                // If client reuses the same transactionId, we must not create a second
-                // transaction.
-                if (transactionRepository.existsByVnpTxnRef(request.transactionId())) {
-                        throw new ApiException(PaymentErrorCode.PAYMENT_PROVIDER_ERROR,
-                                        "Duplicate transactionId. Please retry with a new transaction reference.");
+                // 1.1. Nếu order chưa thanh toán, chuyển trạng thái sang PROCESSING để thể hiện
+                // đang trong quá trình thanh toán online
+                if (order.getStatus() != OrderStatus.PAID && order.getStatus() != OrderStatus.PROCESSING) {
+                        order.setStatus(OrderStatus.PROCESSING);
+                        orderRepository.save(order);
                 }
 
-                // 4. Tạo PaymentEntity trước để lấy paymentId
-                PaymentEntity payment = PaymentEntity.builder()
-                                .order(order)
-                                .paymentMethod(request.paymentMethod())
-                                .status(PaymentStatus.PENDING)
-                                .expiredAt(LocalDateTime.now().plus(15, ChronoUnit.MINUTES))
-                                .build();
-                paymentRepository.save(payment);
+                // 2. Check duplicate Pending payment for this order
+                PaymentEntity response = paymentRepository
+                                .findByOrder_IdAndStatus(request.orderId(), PaymentStatus.PENDING);
+                if (response != null) {
+                        return new PaymentResponse(
+                                        response.getId(), // paymentId
+                                        order.getId(), // orderId
+                                        response.getPaymentMethod().toString(), // paymentMethod
+                                        response.getAmountPaid(), // amountPaid (stored in vnd)
+                                        PaymentStatus.PENDING.toString(), // paymentStatus
+                                        OrderStatus.PROCESSING, // orderStatus
+                                        response.getPaymentUrl(), // paymentUrl
+                                        LocalDateTime.now().plusMinutes(15), // expiredAt
+                                        LocalDateTime.now());
+                }
 
-                // 5. Tạo TransactionEntity (lưu vnpTxnRef = transactionId do client gửi)
-                TransactionEntity txn = TransactionEntity.builder()
-                                .payment(payment)
-                                .vnpTxnRef(request.transactionId())
-                                .amount(request.amount())
-                                .type(TransactionType.PAYMENT)
-                                .status(TransactionStatus.PENDING)
-                                .build();
-                transactionRepository.save(txn);
-
-                // 5. Convert USD amount → VND for gateway (VNPay & MoMo both require VND
-                // integers)
-                long amountVnd = request.amount().multiply(BigDecimal.valueOf(USD_TO_VND)).longValue();
-
-                // 6. Generate payment URL based on payment method
+                // 3. Generate payment URL based on payment method
                 String paymentUrl;
                 if (request.paymentMethod() == PaymentMethod.MOMO) {
                         paymentUrl = moMoPaymentService.createPaymentLink(
                                         order.getId(),
-                                        amountVnd,
+                                        request.amount().longValue(),
                                         "Payment for order " + order.getId(),
                                         request.resolvedMomoRequestType());
                 } else {
                         // Default: VNPay
                         paymentUrl = vnPayService.createPaymentUrl(
                                         order.getId().toString(),
-                                        amountVnd,
+                                        request.amount().longValue(),
                                         request.transactionId(),
                                         ipAddress);
                 }
+
+                // 4. Tạo PaymentEntity (Transaction sẽ chỉ được tạo sau khi gateway callback
+                // thành công)
+                PaymentEntity payment = PaymentEntity.builder()
+                                .order(order)
+                                .paymentMethod(request.paymentMethod())
+                                .amountPaid(request.amount())
+                                .status(PaymentStatus.PENDING)
+                                .transactionId(request.transactionId())
+                                .paymentUrl(paymentUrl)
+                                .expiredAt(LocalDateTime.now().plus(15, ChronoUnit.MINUTES))
+                                .build();
+                paymentRepository.save(payment);
 
                 return new PaymentResponse(
                                 payment.getId(), // paymentId
                                 order.getId(), // orderId
                                 request.paymentMethod().toString(), // paymentMethod
-                                request.amount(), // amountPaid (stored in USD)
-                                "PENDING", // paymentStatus
-                                null, // orderStatus
+                                request.amount(), // amountPaid (stored in vnd)
+                                PaymentStatus.PENDING.toString(), // paymentStatus
+                                OrderStatus.PROCESSING, // orderStatus
                                 paymentUrl, // paymentUrl
                                 LocalDateTime.now().plusMinutes(15), // expiredAt
                                 LocalDateTime.now());
@@ -202,55 +197,98 @@ public class PaymentServiceImpl implements PaymentService {
 
                 boolean isSuccess = "00".equals(responseCode);
 
-                // 1. Tìm transaction theo vnpTxnRef
-                TransactionEntity txn = transactionRepository
-                                .findByVnpTxnRef(vnpTxnRef)
-                                .orElseThrow(() -> new ApiException(PaymentErrorCode.PAYMENT_NOT_FOUND,
-                                                "Transaction not found: " + vnpTxnRef));
-
-                // 2. Idempotent: nếu đã xử lý rồi thì bỏ qua
-                if (!TransactionStatus.PENDING.equals(txn.getStatus())) {
+                // 1. Idempotent: nếu transaction với vnpTxnRef đã tồn tại thì không xử lý lại
+                Optional<TransactionEntity> existingTxnOpt = transactionRepository.findByVnpTxnRef(vnpTxnRef);
+                if (existingTxnOpt.isPresent()) {
+                        TransactionEntity existingTxn = existingTxnOpt.get();
+                        PaymentEntity existingPayment = existingTxn.getPayment();
                         return WebHookResponse.builder()
-                                        .paymentId(txn.getPayment().getId())
-                                        .transactionId(vnpTxnRef)
-                                        .status(txn.getStatus().toString())
+                                        .paymentId(existingPayment.getId())
+                                        .transactionId(existingTxn.getVnpTxnRef())
+                                        .orderId(existingPayment.getOrder() != null ? existingPayment.getOrder().getId()
+                                                        : null)
+                                        .status(existingPayment.getStatus().toString())
                                         .processedAt(LocalDateTime.now())
                                         .build();
                 }
 
-                // 3. Cập nhật TransactionEntity
-                txn.setVnpTransactionNo(vnpTxnNo);
-                txn.setVnpResponseCode(responseCode);
-                txn.setVnpBankCode(bankCode);
-                txn.setAmount(amountStr != null
-                                ? new BigDecimal(amountStr).divide(BigDecimal.valueOf(100))
-                                : null);
-                txn.setStatus(isSuccess ? TransactionStatus.SUCCESS : TransactionStatus.FAILED);
-                transactionRepository.save(txn);
+                // 2. Resolve payment by merchant transaction reference (transactionId sent when
+                // creating payment)
+                PaymentEntity payment = paymentRepository.findByTransactionId(vnpTxnRef)
+                                .orElseThrow(() -> new ApiException(PaymentErrorCode.PAYMENT_NOT_FOUND,
+                                                "Payment not found for transaction ref: " + vnpTxnRef));
 
-                // 4. Cập nhật PaymentEntity
-                PaymentEntity payment = txn.getPayment();
-                payment.setStatus(isSuccess ? PaymentStatus.PAID : PaymentStatus.FAILED);
-                paymentRepository.save(payment);
+                // 3. Store gateway response on payment regardless of outcome (preserves failure
+                // codes)
+                payment.setVnpResponseCode(responseCode);
+                payment.setVnpBankCode(bankCode);
 
-                // 5. Cập nhật Order status nếu payment thành công
-                if (isSuccess && payment.getOrder() != null) {
-                        OrderEntity order = payment.getOrder();
-                        OrderStatus previousStatus = order.getStatus();
-                        order.setStatus(OrderStatus.PAID);
-                        orderRepository.save(order);
+                // 4. Cập nhật PaymentEntity + Order tuỳ theo responseCode
+                if (isSuccess) {
+                        payment.setStatus(PaymentStatus.PAID);
+                        // VNPay gửi amount * 100, convert về đơn vị gốc nếu cần
+                        if (amountStr != null) {
+                                payment.setAmountPaid(
+                                                new BigDecimal(amountStr).divide(BigDecimal.valueOf(100)));
+                        }
+                        payment.setPaymentDate(LocalDateTime.now());
+                        paymentRepository.save(payment);
 
-                        // Push real-time notification: VNPay payment thành công
-                        orderTrackingService.sendTrackingUpdate(order.getId(), previousStatus, OrderStatus.PAID, null);
+                        // 5. Update Order status — guard: do NOT override CANCELED (Bug #5: late IPN
+                        // after cancel)
+                        if (payment.getOrder() != null) {
+                                OrderEntity order = payment.getOrder();
+                                if (order.getStatus() != OrderStatus.PAID
+                                                && order.getStatus() != OrderStatus.CANCELED) {
+                                        OrderStatus previousStatus = order.getStatus();
+                                        order.setStatus(OrderStatus.PAID);
+                                        orderRepository.save(order);
+                                        orderTrackingService.sendTrackingUpdate(order.getId(), previousStatus,
+                                                        OrderStatus.PAID, null);
+                                }
+                        }
+
+                        // 6. Create TransactionEntity only on success (immutable ledger entry)
+                        TransactionEntity txn = TransactionEntity.builder()
+                                        .payment(payment)
+                                        .vnpTxnRef(vnpTxnRef)
+                                        .vnpTransactionNo(vnpTxnNo)
+                                        .amount(amountStr != null
+                                                        ? new BigDecimal(amountStr).divide(BigDecimal.valueOf(100))
+                                                        : null)
+                                        .type(TransactionType.PAYMENT)
+                                        .build();
+                        transactionRepository.save(txn);
+
+                        return WebHookResponse.builder()
+                                        .paymentId(payment.getId())
+                                        .transactionId(vnpTxnRef)
+                                        .orderId(payment.getOrder() != null ? payment.getOrder().getId() : null)
+                                        .status(payment.getStatus().toString())
+                                        .processedAt(LocalDateTime.now())
+                                        .build();
+                } else {
+                        // Thanh toán thất bại / bị hủy: cập nhật Payment, KHÔNG tạo Transaction
+                        payment.setStatus(PaymentStatus.FAILED);
+                        paymentRepository.save(payment);
+
+                        // Nếu order đang PROCESSING thì đưa về PENDING để user có thể chọn PTTT khác
+                        if (payment.getOrder() != null) {
+                                OrderEntity order = payment.getOrder();
+                                if (order.getStatus() == OrderStatus.PROCESSING) {
+                                        order.setStatus(OrderStatus.PENDING);
+                                        orderRepository.save(order);
+                                }
+                        }
+
+                        return WebHookResponse.builder()
+                                        .paymentId(payment.getId())
+                                        .transactionId(null)
+                                        .orderId(payment.getOrder() != null ? payment.getOrder().getId() : null)
+                                        .status(payment.getStatus().toString())
+                                        .processedAt(LocalDateTime.now())
+                                        .build();
                 }
-
-                return WebHookResponse.builder()
-                                .paymentId(payment.getId())
-                                .transactionId(vnpTxnRef)
-                                .orderId(payment.getOrder() != null ? payment.getOrder().getId() : null)
-                                .status(payment.getStatus().toString())
-                                .processedAt(LocalDateTime.now())
-                                .build();
         }
 
         private PaymentListResponse.PaymentRecord buildPaymentRecord(PaymentEntity p, boolean isAdmin) {
@@ -265,9 +303,9 @@ public class PaymentServiceImpl implements PaymentService {
                                 .amountPaid(latestTxn != null ? latestTxn.getAmount() : null)
                                 .paymentDate(p.getCreatedAt().atZone(ZoneId.systemDefault()).toInstant())
                                 .status(p.getStatus().toString())
-                                // Error info from latest failed transaction (admin only)
-                                .errorMessage(isAdmin && latestTxn != null
-                                                ? latestTxn.getVnpResponseCode()
+                                // Error info from gateway response code stored on payment (admin only)
+                                .errorMessage(isAdmin && p.getVnpResponseCode() != null
+                                                ? p.getVnpResponseCode()
                                                 : null)
                                 .build();
         }
@@ -293,11 +331,13 @@ public class PaymentServiceImpl implements PaymentService {
                 UUID orderId = p.getOrder() != null ? p.getOrder().getId() : null;
                 // VNPay transaction details come from TransactionEntity
                 TransactionEntity txn = resolveLatestTransaction(p.getId());
+                // Gateway response codes now live on PaymentEntity; txn refs come from
+                // TransactionEntity
                 PaymentStatusResponse.TransactionInfo transaction = PaymentStatusResponse.TransactionInfo.builder()
                                 .vnpTxnRef(txn != null ? txn.getVnpTxnRef() : null)
                                 .vnpTransactionNo(txn != null ? txn.getVnpTransactionNo() : null)
-                                .vnpResponseCode(txn != null ? txn.getVnpResponseCode() : null)
-                                .vnpBankCode(txn != null ? txn.getVnpBankCode() : null)
+                                .vnpResponseCode(p.getVnpResponseCode())
+                                .vnpBankCode(p.getVnpBankCode())
                                 .build();
                 return PaymentStatusResponse.builder()
                                 .orderId(orderId)
@@ -311,8 +351,8 @@ public class PaymentServiceImpl implements PaymentService {
 
         @Override
         public AdminTransactionListResponse getAdminTransactions(int page, int size,
-                                                                 Optional<String> status, Optional<String> paymentMethod,
-                                                                 Optional<LocalDate> fromDate, Optional<LocalDate> toDate) {
+                        Optional<String> status, Optional<String> paymentMethod,
+                        Optional<LocalDate> fromDate, Optional<LocalDate> toDate) {
                 if (page < 1 || size < 1 || size > MAX_PAGE_SIZE) {
                         throw new ApiException(CommonErrorCode.BAD_REQUEST, "Invalid pagination parameters");
                 }
@@ -356,8 +396,8 @@ public class PaymentServiceImpl implements PaymentService {
                                 .amountPaid(txn != null ? txn.getAmount() : null)
                                 .vnpTxnRef(txn != null ? txn.getVnpTxnRef() : null)
                                 .vnpTransactionNo(txn != null ? txn.getVnpTransactionNo() : null)
-                                .vnpResponseCode(txn != null ? txn.getVnpResponseCode() : null)
-                                .vnpBankCode(txn != null ? txn.getVnpBankCode() : null)
+                                .vnpResponseCode(p.getVnpResponseCode())
+                                .vnpBankCode(p.getVnpBankCode())
                                 .createdDate(p.getCreatedAt().atZone(ZoneId.systemDefault()).toInstant())
                                 .build();
         }

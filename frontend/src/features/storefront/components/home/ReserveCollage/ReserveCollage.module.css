@@ -1,0 +1,457 @@
+.reserveCollageSection {
+    background-color: var(--color-bg-main);
+    padding: 18rem 5% 10rem 5%;
+    position: relative;
+    overflow: hidden;
+    border-bottom: 1px solid rgba(35, 31, 30, 0.1);
+    z-index: 1;
+}
+
+.collageContainer {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+    align-items: center;
+    position: relative;
+}
+
+.architecturalLines {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.lineVertical {
+    position: absolute;
+    left: 50%;
+    top: -10%;
+    bottom: -10%;
+    width: 1px;
+    background-color: rgba(35, 31, 30, 0.1);
+}
+
+.lineHorizontal {
+    position: absolute;
+    top: 60%;
+    left: 45%;
+    right: 0;
+    height: 1px;
+    background-color: rgba(35, 31, 30, 0.1);
+}
+
+.collageImages {
+    position: relative;
+    height: 800px;
+    z-index: 1;
+}
+
+.collageImages img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border: 15px solid var(--color-white);
+    background-color: var(--color-white);
+    opacity: 1;
+}
+
+.imgMain,
+.imgSecondary,
+.imgBottom,
+.imgAccent {
+    position: absolute;
+    will-change: transform;
+    transform-style: preserve-3d;
+}
+
+.imgMain {
+    top: 0;
+    left: 0;
+    width: 70%;
+    height: 75%;
+    z-index: 2;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.08);
+}
+
+.imgSecondary {
+    top: 25%;
+    right: 0;
+    width: 40%;
+    height: 35%;
+    z-index: 1;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+}
+
+.imgBottom {
+    bottom: -5%;
+    left: 10%;
+    width: 45%;
+    height: 30%;
+    z-index: 3;
+    box-shadow: 0 -15px 35px rgba(0, 0, 0, 0.08);
+}
+
+.imgAccent {
+    top: 78%;
+    right: 38%;
+    width: 15%;
+    height: 20%;
+    z-index: 4;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+.collageContent {
+    padding-left: 2rem;
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+    margin-top: -300px;
+}
+
+.collageTitle {
+    font-family: var(--font-heading);
+    font-size: clamp(2.5rem, 4vw, 4.5rem);
+    font-weight: 900;
+    letter-spacing: 0px;
+    line-height: 1.1;
+    color: var(--color-text-main);
+    margin-bottom: 2rem;
+    text-transform: none;
+}
+
+.collageDesc {
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: var(--color-text-muted);
+    margin-bottom: 0;
+    max-width: 500px;
+}
+
+.collageNumber {
+    font-family: var(--font-heading);
+    font-size: 1.2rem;
+    color: var(--color-primary);
+    font-weight: 300;
+    margin-bottom: 1rem;
+    letter-spacing: 0.2rem;
+    display: block;
+}
+
+.textAccent {
+    color: var(--color-primary);
+}
+
+.collageFeatured {
+    margin-top: 2rem;
+    font-family: var(--font-body);
+    font-size: 0.65rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.15rem;
+    color: var(--color-text-main);
+    opacity: 0.8;
+}
+
+.collageFeatured span {
+    color: var(--color-primary);
+    margin-right: 0.5rem;
+}
+
+.collageLink {
+    font-family: var(--font-body);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--color-white);
+    background-color: var(--color-text-main);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    padding: 0.9rem 2.4rem;
+    transition: all 0.3s ease;
+    margin-top: 2rem;
+}
+
+.collageLink:hover {
+    color: var(--color-white);
+    background-color: var(--color-primary);
+    transform: translateY(-2px);
+    box-shadow: 0px 8px 25px rgba(217, 131, 36, 0.2);
+}
+
+/* Reversed Layout Modifier */
+.collageReversed .collageImages {
+    order: 2;
+}
+
+.collageReversed .collageContent {
+    order: 1;
+    padding-left: 0;
+    padding-right: 2rem;
+    text-align: right;
+    align-items: flex-end;
+}
+
+@media (max-width: 1024px) {
+    .collageContainer {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+
+    .collageReversed .collageImages {
+        order: 1;
+    }
+
+    .collageReversed .collageContent {
+        order: 2;
+        padding-right: 0;
+        text-align: center;
+        align-items: center;
+    }
+
+    .lineVertical,
+    .lineHorizontal {
+        display: none;
+    }
+
+    .collageImages {
+        height: 600px;
+    }
+
+    .collageContent {
+        padding-left: 0;
+        margin-top: 0;
+    }
+
+    .collageLink {
+        margin-top: 2rem;
+    }
+}
+
+.collageContainer {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+    align-items: center;
+    position: relative;
+}
+
+.architecturalLines {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 0;
+    clip-path: inset(10% 0 10% 0);
+    /* Added clip-path */
+}
+
+.lineVertical {
+    position: absolute;
+    left: 50%;
+    top: -10%;
+    bottom: -10%;
+    width: 1px;
+    background-color: rgba(35, 31, 30, 0.1);
+}
+
+.lineHorizontal {
+    position: absolute;
+    top: 60%;
+    left: 45%;
+    right: 0;
+    height: 1px;
+    background-color: rgba(35, 31, 30, 0.1);
+}
+
+.collageImages {
+    position: relative;
+    height: 800px;
+    z-index: 1;
+}
+
+.collageImages img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border: 15px solid var(--color-white);
+    background-color: var(--color-white);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+}
+
+.imgMain,
+.imgSecondary,
+.imgBottom,
+.imgAccent {
+    position: absolute;
+    will-change: transform;
+}
+
+.imgMain {
+    top: 0;
+    left: 0;
+    width: 70%;
+    height: 75%;
+    z-index: 2;
+}
+
+.imgSecondary {
+    top: 25%;
+    right: 0;
+    width: 40%;
+    height: 35%;
+    z-index: 1;
+}
+
+.imgBottom {
+    bottom: -5%;
+    left: 10%;
+    width: 45%;
+    height: 30%;
+    z-index: 3;
+}
+
+.imgAccent {
+    top: 78%;
+    right: 38%;
+    width: 15%;
+    height: 20%;
+    z-index: 4;
+}
+
+.collageContent {
+    padding-left: 2rem;
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+    margin-top: -300px;
+}
+
+.collageTitle {
+    font-family: var(--font-heading);
+    font-size: clamp(2.5rem, 4vw, 4.5rem);
+    font-weight: 900;
+    line-height: 1.1;
+    color: var(--color-text-main);
+    margin-bottom: 2rem;
+    text-transform: none;
+}
+
+.collageDesc {
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: var(--color-text-muted);
+    margin-bottom: 2rem;
+    max-width: 500px;
+}
+
+.collageNumber {
+    font-family: var(--font-heading);
+    font-size: 1.2rem;
+    color: var(--color-primary);
+    font-weight: 300;
+    margin-bottom: 1rem;
+    letter-spacing: 0.2rem;
+    display: block;
+}
+
+.collageFeatured {
+    margin-top: 2rem;
+    font-family: var(--font-body);
+    font-size: 0.65rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.15rem;
+    color: var(--color-text-main);
+    opacity: 0.8;
+}
+
+.collageFeatured span {
+    color: var(--color-primary);
+    margin-right: 0.5rem;
+}
+
+.textAccent {
+    color: var(--color-primary);
+}
+
+.collageLink {
+    font-family: var(--font-body);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--color-white);
+    background-color: var(--color-text-main);
+    border: none;
+    padding: 0.9rem 2.4rem;
+    cursor: pointer;
+    transition: var(--transition-base);
+    margin-top: 2rem;
+}
+
+.collageLink:hover {
+    background-color: var(--color-primary);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-btn-hover);
+}
+
+/* Reversed Layout Modifier */
+.collageReversed .collageImages {
+    order: 2;
+}
+
+.collageReversed .collageContent {
+    order: 1;
+    padding-left: 0;
+    padding-right: 2rem;
+    text-align: right;
+    align-items: flex-end;
+}
+
+@media (max-width: 1024px) {
+    .collageContainer {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+
+    .collageReversed .collageImages {
+        order: 1;
+    }
+
+    .collageReversed .collageContent {
+        order: 2;
+        padding-right: 0;
+        text-align: center;
+        align-items: center;
+    }
+
+    .collageImages {
+        height: 600px;
+    }
+
+    .collageContent {
+        padding-left: 0;
+        margin-top: 0;
+        text-align: center;
+        align-items: center;
+    }
+}

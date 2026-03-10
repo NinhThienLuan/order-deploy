@@ -1,0 +1,118 @@
+.toggleWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.toggleRow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  user-select: none;
+}
+
+.topLabel {
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-text-main);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.statusLabel {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: opacity 0.2s ease;
+}
+
+.active {
+  color: var(--color-text-main);
+  opacity: 1;
+}
+
+.dimmed {
+  color: var(--color-text-muted);
+  opacity: 0.4;
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 96px;
+  height: 32px;
+  cursor: pointer;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  inset: 0;
+  background-color: #d9534f; /* Red for InActive */
+  border-radius: 4px;
+  transition: .2s ease;
+  display: flex;
+  align-items: center;
+}
+
+input:checked + .slider {
+  background-color: #5cb85c; /* Green for Active */
+}
+
+.internalLabel {
+  flex: 1;
+  color: white;
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-align: center;
+  pointer-events: none;
+  user-select: none;
+  transition: padding 0.2s ease;
+  /* When NOT checked (InActive), handle is on left, so add padding to left */
+  padding-left: 28px;
+  padding-right: 4px;
+}
+
+input:checked + .slider .internalLabel {
+  /* When checked (Active), handle is on right, so add padding to right */
+  padding-left: 4px;
+  padding-right: 28px;
+}
+
+.handle {
+  position: absolute;
+  height: 24px;
+  width: 24px;
+  left: 4px;
+  top: 4px;
+  background-color: white;
+  border-radius: 3px;
+  transition: .2s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  z-index: 2;
+}
+
+input:checked + .slider .handle {
+  transform: translateX(64px); /* 96 - 24 - 4 - 4 = 64 */
+}
+
+.grip {
+  color: #eee;
+  font-size: 0.7rem;
+  letter-spacing: -1px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}

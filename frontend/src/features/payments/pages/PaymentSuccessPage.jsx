@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Navbar from '../../../layouts/Navbar';
+import Navbar from '@/layouts/Navbar';
 import styles from './PaymentResultPage.module.css';
 
 /**

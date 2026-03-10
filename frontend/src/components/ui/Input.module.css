@@ -1,0 +1,50 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.label {
+  font-family: var(--font-body);
+  font-size: var(--fs-label);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: var(--ls-label);
+  color: var(--color-text-muted);
+}
+
+.input {
+  width: 100%;
+  padding: var(--space-form-padding);
+  border: var(--border-input);
+  background: var(--color-white);
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+  color: var(--color-text-main);
+  outline: none;
+  transition: all var(--transition-fast);
+  border-radius: 0;
+}
+
+.input::placeholder {
+  font-style: italic;
+  opacity: 0.35;
+}
+
+.input:focus {
+  border: var(--border-active);
+  box-shadow: var(--shadow-focus-ring);
+  background: var(--color-white);
+}
+
+.inputError {
+  border-color: var(--color-danger);
+}
+
+.errorText {
+  color: var(--color-danger);
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: var(--font-body);
+}

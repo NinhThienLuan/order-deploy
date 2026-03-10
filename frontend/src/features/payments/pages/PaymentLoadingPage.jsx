@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import Navbar from '../../../layouts/Navbar';
+import Navbar from '@/layouts/Navbar';
 import styles from './PaymentResultPage.module.css';
-import { processPayment } from '../../orders/orders.service';
+import { processPayment } from '@/features/orders/services/order.service';
 
 /**
  * /payment/loading
@@ -31,7 +31,7 @@ const PaymentLoadingPage = () => {
         if (calledRef.current) return; // strict-mode double-fire guard
         calledRef.current = true;
 
-        if (!orderId || !amount) {
+        if (!orderId) {
             // No order info — send back to orders list
             navigate('/orders', { replace: true });
             return;

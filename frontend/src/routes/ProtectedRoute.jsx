@@ -1,5 +1,5 @@
 import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../features/auth/AuthContext';
+import { useAuth } from '@/features/authentication/services/AuthContext';
 import { ACCESS } from './routes.config';
 
 const STAFF_ROLES = ['FRANCHISE_ADMIN', 'STORE_MANAGER'];

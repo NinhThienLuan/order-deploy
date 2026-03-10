@@ -1,95 +1,33 @@
-/* === CancelOrderButton.module.css === */
-
-.wrapper {
+.confirmBox {
     display: flex;
     flex-direction: column;
+    gap: 1rem;
+}
+
+.confirmText {
+    font-size: 0.9rem;
+    color: #231F1E;
+    margin: 0;
+    font-weight: 500;
+}
+
+.errorText {
+    font-size: 0.8rem;
+    color: #C0392B;
+    margin: 0;
+}
+
+.actions {
+    display: flex;
     gap: 0.75rem;
-    align-items: flex-start;
-    font-family: var(--font-body);
 }
 
-/* Danger (Ghost) cancel button */
 .cancelBtn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-
-    padding: 0.9rem 2.4rem;
-    background: transparent;
-    border: 1px solid rgba(192, 57, 43, 0.4);
-    color: var(--color-danger);
-    cursor: pointer;
-    border-radius: var(--radius-none);
-    font-family: var(--font-body);
-    font-size: var(--fs-button);
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: var(--ls-button);
-    transition: background var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
+    color: #C0392B !important;
+    border-color: rgba(192, 57, 43, 0.2) !important;
 }
 
-.cancelBtn:hover:not(:disabled) {
-    background-color: var(--color-danger-bg);
-    border-color: var(--color-danger);
-    transform: translateY(-2px);
-    box-shadow: 0px 8px 25px rgba(192, 57, 43, 0.15);
-}
-
-.cancelBtn:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
-}
-
-/* Loading state */
-.cancelBtn.loading {
-    opacity: 0.7;
-    pointer-events: none;
-}
-
-/* Error message box */
-.errorBox {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.5rem;
-    padding: 0.75rem 1rem;
-    background: var(--color-danger-bg);
-    border-left: 3px solid var(--color-danger);
-    color: var(--color-danger);
-    font-size: var(--fs-body);
-    font-weight: 600;
-    line-height: 1.5;
-    border-radius: var(--radius-none);
-    animation: fadeIn 0.2s ease;
-}
-
-.errorIcon {
-    flex-shrink: 0;
-    margin-top: 1px;
-}
-
-/* Success message box */
-.successBox {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.75rem 1rem;
-    background: var(--color-success-bg);
-    border-left: 3px solid var(--color-success);
-    color: var(--color-success-text);
-    font-size: var(--fs-body);
-    font-weight: 600;
-    border-radius: var(--radius-none);
-    animation: fadeIn 0.2s ease;
-}
-
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(4px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+.cancelBtn:hover {
+    background: rgba(192, 57, 43, 0.05) !important;
+    border-color: #C0392B !important;
 }

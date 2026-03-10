@@ -99,8 +99,7 @@
 
 /* ── Image Column ── */
 .imageCol {
-    position: sticky;
-    top: 7rem;
+    position: relative;
 }
 
 .imageFrame {
@@ -148,6 +147,47 @@
     top: 1rem;
 }
 
+/* ── Thumbnail Gallery ── */
+.thumbnailRow {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    flex-wrap: wrap;
+}
+
+.thumbnailBtn {
+    width: 80px;
+    height: 80px;
+    padding: 0;
+    border: 1px solid rgba(35, 31, 30, 0.1);
+    background: #F5F2EC;
+    cursor: pointer;
+    overflow: hidden;
+    position: relative;
+    transition: border-color 0.2s, opacity 0.2s;
+    opacity: 0.6;
+}
+
+.thumbnailBtn:hover {
+    opacity: 0.9;
+}
+
+.thumbnailActive {
+    opacity: 1;
+    border-color: #231F1E;
+}
+
+.thumbnailImg {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s;
+}
+
+.thumbnailBtn:hover .thumbnailImg {
+    transform: scale(1.05);
+}
+
 /* ── Info Column ── */
 .infoCol {
     padding-top: 0.5rem;
@@ -155,30 +195,29 @@
 
 .categoryTag {
     display: inline-block;
-    font-size: 0.62rem;
-    font-weight: 800;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    color: #D98324;
-    margin-bottom: 1rem;
+    font-size: 0.8rem;
+    color: rgba(35, 31, 30, 0.6);
+    margin-bottom: 2rem;
+    font-weight: 400;
 }
 
 .productName {
     font-family: 'Playfair Display', serif;
-    font-size: clamp(2.5rem, 5vw, 4rem);
-    font-weight: 900;
-    line-height: 1.05;
-    letter-spacing: -0.02em;
+    font-size: clamp(1.2rem, 3vw, 1.8rem);
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
     color: #231F1E;
-    margin: 0 0 1.25rem;
+    margin: 0 0 0.35rem;
+    padding-top: 2rem; /* Added header top padding per user request */
 }
 
 .price {
-    font-family: 'Playfair Display', serif;
-    font-size: 1.75rem;
+    font-family: 'Inter', sans-serif;
+    font-size: 2.25rem;
     font-weight: 700;
     color: #231F1E;
-    margin: 0 0 1.5rem;
+    margin: 0 0 2rem;
 }
 
 .description {
@@ -195,39 +234,40 @@
     margin-bottom: 2rem;
 }
 
-/* ── Quantity ── */
-.qtyRow {
+/* ── Quantity Row ── */
+.qtyRowWrapper {
     display: flex;
     align-items: center;
-    gap: 1.5rem;
+    justify-content: space-between;
     margin-bottom: 1.5rem;
-}
-
-.qtyLabel {
-    font-size: 0.65rem;
-    font-weight: 800;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: rgba(35, 31, 30, 0.45);
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid rgba(35, 31, 30, 0.1);
 }
 
 .qtyControls {
     display: flex;
     align-items: center;
-    border: 1px solid rgba(35, 31, 30, 0.15);
+    background: rgba(35, 31, 30, 0.03);
+    border-radius: 4px;
+    height: 48px;
+    padding: 0 0.5rem;
 }
 
 .qtyBtn {
-    width: 38px;
-    height: 38px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     background: none;
     border: none;
     font-size: 1.2rem;
-    font-weight: 400;
+    font-weight: 300;
     color: #231F1E;
     cursor: pointer;
     line-height: 1;
     transition: background 0.15s, color 0.15s;
+    border-radius: 2px;
 }
 
 .qtyBtn:hover {
@@ -238,31 +278,62 @@
 .qtyValue {
     width: 40px;
     text-align: center;
-    font-size: 0.9rem;
-    font-weight: 700;
+    font-size: 0.85rem;
+    font-weight: 500;
     color: #231F1E;
-    border-left: 1px solid rgba(35, 31, 30, 0.12);
-    border-right: 1px solid rgba(35, 31, 30, 0.12);
-    line-height: 38px;
+    line-height: normal;
     user-select: none;
 }
 
-/* ── Add to Cart button ── */
-.addBtn {
-    display: block;
-    width: 100%;
-    padding: 1.1rem 2rem;
-    background: #231F1E;
-    color: #FFFFFF;
-    border: none;
+.qtyPriceInline {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: rgba(35, 31, 30, 0.65);
+}
+
+/* ── Action Row (Buy Now + Add to Cart) ── */
+.actionRow {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 3rem;
+}
+
+.buyBtn, .addBtn {
+    flex: 1;
+    height: 54px;
+    padding: 0 1rem;
     font-family: 'Inter', sans-serif;
     font-size: 0.75rem;
-    font-weight: 800;
-    letter-spacing: 3px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
     text-transform: uppercase;
     cursor: pointer;
     transition: background 0.25s, transform 0.2s, box-shadow 0.2s;
-    margin-bottom: 2.5rem;
+    line-height: normal;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Ghost Button Styling for Buy Now */
+.buyBtn {
+    background: transparent;
+    color: #231F1E;
+    border: 1px solid rgba(35, 31, 30, 0.2);
+}
+
+.buyBtn:hover:not(:disabled) {
+    border-color: #231F1E;
+    background: rgba(35, 31, 30, 0.03);
+}
+
+/* Solid Button Styling for Add to Cart */
+.addBtn {
+    background: #231F1E;
+    color: #FFFFFF;
+    border: 1px solid #231F1E;
 }
 
 .addBtn:hover:not(:disabled) {
@@ -487,4 +558,57 @@
     .relatedGrid {
         grid-template-columns: repeat(2, 1fr);
     }
+}
+
+/* ── Variation Selector ── */
+.variantSection {
+    margin-bottom: 2rem;
+}
+
+.variantLabel {
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: rgba(35, 31, 30, 0.4);
+    margin-bottom: 1rem;
+}
+
+.variantGrid {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.variantBtn {
+    min-width: 60px;
+    height: 44px;
+    padding: 0 1rem;
+    background: transparent;
+    border: 1px solid rgba(35, 31, 30, 0.1);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #231F1E;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.variantBtn:hover:not(:disabled) {
+    border-color: #231F1E;
+}
+
+.variantBtnActive {
+    background: #231F1E;
+    color: #FAF9F6;
+    border-color: #231F1E;
+}
+
+.variantBtnDisabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    text-decoration: line-through;
 }

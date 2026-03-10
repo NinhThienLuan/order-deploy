@@ -1,0 +1,116 @@
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(35, 31, 30, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: #FFFFFF;
+  width: 100%;
+  max-width: 500px;
+  border: 1px solid rgba(35, 31, 30, 0.07);
+  font-family: 'Inter', sans-serif;
+}
+
+.header {
+  padding: 2rem 2rem 1rem;
+  border-bottom: 1px solid rgba(35, 31, 30, 0.07);
+}
+
+.title {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #231F1E;
+  margin: 0 0 0.5rem 0;
+}
+
+.orderInfo {
+  font-size: 0.85rem;
+  color: rgba(35, 31, 30, 0.6);
+  margin: 0;
+}
+
+.orderId {
+  color: #D98324;
+  font-weight: 600;
+}
+
+.content {
+  padding: 2rem;
+}
+
+.field {
+  margin-bottom: 1.5rem;
+}
+
+.label {
+  display: block;
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: #231F1E;
+  margin-bottom: 0.75rem;
+}
+
+.required {
+  color: #C0392B;
+}
+
+.select,
+.input,
+.textarea {
+  width: 100%;
+  padding: 0.8rem 1rem;
+  background: #FAF9F6;
+  border: 1px solid rgba(35, 31, 30, 0.15);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.85rem;
+  color: #231F1E;
+  transition: all 0.2s;
+}
+
+.select:focus,
+.input:focus,
+.textarea:focus {
+  outline: none;
+  background: #FFFFFF;
+  border-color: #D98324;
+  box-shadow: 0px 0px 0px 3px rgba(217, 131, 36, 0.08);
+}
+
+.select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23231F1E' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  background-size: 16px;
+}
+
+.textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.hint {
+  font-size: 0.75rem;
+  color: rgba(35, 31, 30, 0.6);
+  margin-top: 0.5rem;
+  font-style: italic;
+}
+
+.footer {
+  padding: 1.5rem 2rem;
+  border-top: 1px solid rgba(35, 31, 30, 0.07);
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+}

@@ -1,0 +1,52 @@
+/* ── OrderManagementPage.module.css ── */
+.main {
+    padding: 2rem;
+    background: #FAF9F6;
+    min-height: 100vh;
+}
+
+.container {
+    max-width: 1240px;
+    margin: 0 auto;
+}
+
+.searchBox {
+    flex: 1;
+    max-width: 320px;
+}
+
+.searchInput {
+    background: #FFFFFF;
+}
+
+.filterSelect, .dateInput {
+    background: #FFFFFF;
+    height: 42px;
+}
+
+.tableWrap {
+    margin-top: 2rem;
+    background: #FFFFFF;
+    box-shadow: 0 1px 3px rgba(35, 31, 30, 0.08);
+}
+
+.loading {
+    padding: 4rem;
+    text-align: center;
+    color: #6B7280;
+    font-size: 0.9rem;
+}
+
+/* Pagination */
+.pageInfo {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #6B7280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.paginationBtns {
+    display: flex;
+    gap: 0.5rem;
+}

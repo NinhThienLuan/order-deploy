@@ -2,10 +2,10 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import styles from './Navbar.module.css';
 import MenuOverlay from './MenuOverlay';
-import { useCart } from '../features/cart/CartContext';
-import { useAuth } from '../features/auth/AuthContext';
-import { NAV_ITEMS } from '../features/landing/nav.constants';
-import { getCategories, getProducts } from '../features/products/products.service';
+import { useCart } from '@/features/orders/services/CartContext';
+import { useAuth } from '@/features/authentication/services/AuthContext';
+import { NAV_ITEMS } from '@/features/storefront/constants/nav.constants';
+import { getCategories, getProducts } from '@/features/products/services/products.service';
 
 const getInitials = (name = '') => {
     const trimmed = name.trim();

@@ -1,7 +1,7 @@
 /**
  * ROUTE MAP
  * ─────────────────────────────────────────────────────────────────
- * PUBLIC         accessible by everyone (menu, login, register…)
+ * PUBLIC         accessible by everyone (menu, login…)
  * GUEST_ONLY     accessible only when NOT logged in (landing); logged-in → /home
  * PROTECTED      must be logged in (any role)
  * ADMIN          role === 'ADMIN' only
@@ -15,7 +15,6 @@
  *  /menu                  → ProductListPage
  *  /menu/:id              → ProductDetailPage
  *  /login                 → LoginPage
- *  /register              → RegisterPage
  *  /forgot-password       → ForgotPasswordPage
  *
  *  [auth required]
@@ -33,29 +32,30 @@
  *  /admin/stores/orders   → StoreOrderManagementPage
  */
 
-import LandingPage from '../features/landing/pages/LandingPage';
-import HomePage from '../features/home/pages/HomePage';
-import ProductListPage from '../features/products/pages/ProductListPage';
-import ProductDetailPage from '../features/products/pages/ProductDetailPage';
-import LoginPage from '../features/auth/pages/LoginPage';
-import RegisterPage from '../features/auth/pages/RegisterPage';
-import ForgotPasswordPage from '../features/auth/pages/ForgotPasswordPage';
-import CartPage from '../features/cart/pages/CartPage';
-import CheckoutPage from '../features/cart/pages/CheckoutPage';
-import OrderListPage from '../features/orders/pages/OrderListPage';
-import OrderDetailPage from '../features/orders/pages/OrderDetailPage';
-import TransactionHistoryPage from '../features/transactions/pages/TransactionHistoryPage';
-import OrderManagementPage from '../features/orderManagement/pages/OrderManagementPage';
-import AdminOrderDetailPage from '../features/orderManagement/pages/AdminOrderDetailPage';
-import AdminDashboardPage from '../features/admin/pages/AdminDashboardPage';
-import StoreOrderManagementPage from '../features/admin/pages/StoreOrderManagementPage';
-import AdminProductCrudPage from '../features/admin/pages/AdminProductCrudPage';
-import AdminCategoryPage from '../features/admin/pages/AdminCategoryPage';
-import AdminProductDetailPage from '../features/admin/pages/AdminProductDetailPage';
-import PaymentResultPage from '../features/payments/pages/PaymentResultPage';
-import PaymentSuccessPage from '../features/payments/pages/PaymentSuccessPage';
-import PaymentFailedPage from '../features/payments/pages/PaymentFailedPage';
-import PaymentLoadingPage from '../features/payments/pages/PaymentLoadingPage';
+import LandingPage from '@/features/storefront/pages/LandingPage';
+import HomePage from '@/features/storefront/pages/HomePage';
+import ProductListPage from '@/features/products/pages/ProductListPage';
+import ProductDetailPage from '@/features/products/pages/ProductDetailPage';
+import LoginPage from '@/features/authentication/pages/LoginPage';
+// RegisterPage removed - not implemented
+import ForgotPasswordPage from '@/features/authentication/pages/ForgotPasswordPage';
+import CartPage from '@/features/orders/pages/CartPage';
+import CheckoutPage from '@/features/orders/pages/CheckoutPage';
+import OrderListPage from '@/features/orders/pages/OrderListPage';
+import OrderDetailPage from '@/features/orders/pages/OrderDetailPage';
+import TransactionHistoryPage from '@/features/admin/pages/transactions/TransactionHistoryPage';
+import OrderManagementPage from '@/features/admin/pages/orders/OrderManagementPage';
+import AdminOrderDetailPage from '@/features/admin/pages/orders/AdminOrderDetailPage';
+import AdminDashboardPage from '@/features/admin/pages/shared/AdminDashboardPage';
+import StoreOrderManagementPage from '@/features/admin/pages/orders/StoreOrderManagementPage';
+import POSPage from '@/features/admin/pages/orders/POSPage';
+import AdminProductCrudPage from '@/features/admin/pages/products/AdminProductCrudPage';
+import AdminCategoryPage from '@/features/admin/pages/categories/AdminCategoryPage';
+import AdminProductDetailPage from '@/features/admin/pages/products/AdminProductDetailPage';
+import PaymentResultPage from '@/features/payments/pages/PaymentResultPage';
+import PaymentSuccessPage from '@/features/payments/pages/PaymentSuccessPage';
+import PaymentFailedPage from '@/features/payments/pages/PaymentFailedPage';
+import PaymentLoadingPage from '@/features/payments/pages/PaymentLoadingPage';
 
 // ── Access levels ────────────────────────────────────────────────
 export const ACCESS = {
@@ -75,7 +75,6 @@ export const ROUTES = [
     { path: '/menu', element: <ProductListPage />, access: ACCESS.PUBLIC },
     { path: '/menu/:id', element: <ProductDetailPage />, access: ACCESS.PUBLIC },
     { path: '/login', element: <LoginPage />, access: ACCESS.PUBLIC },
-    { path: '/register', element: <RegisterPage />, access: ACCESS.PUBLIC },
     { path: '/forgot-password', element: <ForgotPasswordPage />, access: ACCESS.PUBLIC },
 
     // Protected — any logged-in user
@@ -99,7 +98,6 @@ export const ADMIN_ROUTES = [
 
     // Product CRUD
     { path: '/admin/catalog', element: <AdminProductCrudPage />, access: ACCESS.PUBLIC },
-    { path: '/admin/catalog/new', element: <AdminProductCrudPage />, access: ACCESS.PUBLIC },
     { path: '/admin/catalog/:productId', element: <AdminProductDetailPage />, access: ACCESS.PUBLIC },
     { path: '/admin/stores/products', element: <AdminProductCrudPage />, access: ACCESS.PUBLIC },
 
@@ -108,4 +106,7 @@ export const ADMIN_ROUTES = [
 
     // Store Manager (also accessible by ADMIN)
     { path: '/admin/stores/orders', element: <StoreOrderManagementPage />, access: [ACCESS.ADMIN, ACCESS.STORE_MANAGER] },
+
+    // POS Terminal
+    { path: '/admin/pos', element: <POSPage />, access: [ACCESS.ADMIN, ACCESS.STORE_MANAGER] },
 ];

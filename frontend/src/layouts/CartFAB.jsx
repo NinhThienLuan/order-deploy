@@ -1,5 +1,5 @@
 import { useLocation } from 'react-router-dom';
-import { useCart } from '../features/cart/CartContext';
+import { useCart } from '@/features/orders/services/CartContext';
 import styles from './CartFAB.module.css';
 
 const CartFAB = () => {

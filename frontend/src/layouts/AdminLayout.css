@@ -6,10 +6,9 @@
 }
 
 .admin-content {
-    margin-left: var(--sidebar-width, 260px);
+    margin-left: var(--sidebar-width, 280px);
     flex: 1;
     min-height: 100vh;
-    overflow-x: clip;
     background: var(--color-bg-main, #FAF9F6);
     transition: margin-left 0.3s ease;
 }

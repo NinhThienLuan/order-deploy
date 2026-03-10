@@ -1,5 +1,5 @@
 import styles from './OrderStatusStepper.module.css';
-import { STEPPER_STEPS } from '../../orders.constants';
+import { STEPPER_STEPS } from '@/features/orders/services/order.constants';
 
 /**
  * OrderStatusStepper

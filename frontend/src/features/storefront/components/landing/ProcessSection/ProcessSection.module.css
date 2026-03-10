@@ -1,0 +1,130 @@
+/* === ProcessSection.module.css — pixel-perfect match to attempt-2/style.css ===
+   #process: .immersive-section.full-bleed-section with .reverse (lines 149-169 in HTML)
+   .full-bleed-grid.reverse (lines 618-624)
+   image-wrapper: order 2, immersive-content: order 1
+   background: --bg-main (#FAF9F6)
+*/
+
+.section {
+    height: 100vh;
+    background-color: #FAF9F6;
+    /* --bg-main */
+    padding: 0 !important;
+    border-bottom: 2px solid #231F1E;
+    overflow: hidden;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    height: 100%;
+}
+
+/* .reverse: image on right */
+.imageWrapper {
+    order: 2;
+    /* image is on the right */
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    will-change: transform, opacity;
+    backface-visibility: hidden;
+}
+
+.image {
+    width: 100%;
+    height: 100%;
+    aspect-ratio: unset;
+    border-radius: 0;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.7s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+.imageWrapper:hover .image {
+    transform: scale(1.03);
+}
+
+.content {
+    order: 1;
+    /* content is on the left */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 120px 15% 10% 15%;
+    max-width: unset;
+    will-change: transform, opacity;
+    backface-visibility: hidden;
+}
+
+.tag {
+    display: block;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #E8C595;
+    /* --secondary */
+    font-weight: 600;
+    margin-bottom: 1rem;
+    font-family: 'Inter', sans-serif;
+}
+
+.title {
+    font-family: 'Playfair Display', serif;
+    font-size: 3.5rem;
+    line-height: 1.1;
+    margin-bottom: 1.5rem;
+    color: #231F1E;
+    text-transform: uppercase;
+    font-weight: 900;
+}
+
+.stepsBlock {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    /* original uses margin-bottom: 1rem on p */
+    margin-bottom: 2rem;
+}
+
+.stepRow {
+    font-size: 1.1rem;
+    color: rgba(35, 31, 30, 0.6);
+    margin-bottom: 1rem;
+    line-height: 1.7;
+    font-family: 'Inter', sans-serif;
+}
+
+.stepNumeral {
+    /* inline with <strong> inside p tag */
+}
+
+.stepTitle {
+    font-weight: 700;
+    color: #231F1E;
+}
+
+.btn {
+    display: inline-block;
+    padding: 1.1rem 3.2rem;
+    border: none;
+    background: #231F1E;
+    color: #FFFFFF;
+    text-decoration: none;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    cursor: pointer;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    align-self: flex-start;
+}
+
+.btn:hover {
+    background: #D98324;
+    color: #FFFFFF;
+    transform: translateY(-3px);
+    box-shadow: 0 15px 40px rgba(217, 131, 36, 0.2);
+}

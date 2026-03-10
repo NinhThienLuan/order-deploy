@@ -1,0 +1,165 @@
+/* === CatalogSection.module.css — pixel-perfect match to attempt-2/style.css ===
+   #coffees .products-section (lines 174-233 in HTML)
+   background: --bg-offset, padding-top: 140px
+   .section-header (lines 631-634)
+   .product-grid (lines 636-643)
+   .product-card (lines 645-652)
+   .product-img-wrapper (lines 654-667)
+   .product-img (lines 669-674)
+   .product-category (lines 676-686)
+   .product-title (lines 688-697)
+   .product-actions (lines 717-723)
+   .product-price (lines 725-730)
+   .action-buttons (lines 732-735)
+   .btn-link (lines 737-748)
+   .btn-small (lines 750-762)
+*/
+
+.section {
+    background-color: #EFECE3;
+    /* --bg-offset */
+    padding-top: 140px;
+    padding-bottom: 8rem;
+}
+
+.container {
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 0 5rem;
+}
+
+/* .section-header */
+.header {
+    text-align: center;
+    /* from HTML: no, wait — HTML shows no text-align on section-header itself,
+                         but the section-header class in style.css line 631 has: text-align: center; margin-bottom: 5rem */
+    margin-bottom: 5rem;
+    will-change: transform, opacity;
+    backface-visibility: hidden;
+}
+
+.tag {
+    display: block;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #E8C595;
+    /* --secondary */
+    font-weight: 600;
+    margin-bottom: 1rem;
+    font-family: 'Inter', sans-serif;
+}
+
+/* From HTML: style="font-size: 5.5rem; line-height: 1;" */
+.title {
+    font-family: 'Playfair Display', serif;
+    font-size: 5.5rem;
+    font-weight: 900;
+    line-height: 1;
+    color: #231F1E;
+    text-transform: uppercase;
+    margin-bottom: 2rem;
+}
+
+/* ── Grid wrapper (mosaic border effect) ── */
+.gridWrap {
+    margin-top: 4rem;
+}
+
+/* ── Product Grid ── */
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1px;
+    background: rgba(35, 31, 30, 0.07);
+    border: 1px solid rgba(35, 31, 30, 0.07);
+}
+
+/* Product cards now use ProductCard.jsx and ProductCard.module.css */
+
+.cta {
+    text-align: center;
+    margin-top: 5rem;
+}
+
+/* .btn for "Full Catalog" */
+.btnCatalog {
+    display: inline-block;
+    padding: 1.1rem 3.2rem;
+    border: none;
+    background: #231F1E;
+    color: #FFFFFF;
+    text-decoration: none;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    cursor: pointer;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+}
+
+.btnCatalog:hover {
+    background: #D98324;
+    color: #FFFFFF;
+    transform: translateY(-3px);
+    box-shadow: 0 15px 40px rgba(217, 131, 36, 0.2);
+}
+
+/* -- Variation Selector Overlay -- */
+.variationOverlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(8px);
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.2s ease-out;
+    pointer-events: auto;
+}
+
+.overlayClose {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    width: 24px;
+    height: 24px;
+    background: #FAF9F6;
+    border: 1px solid rgba(35, 31, 30, 0.1);
+    color: #231F1E;
+    font-size: 0.7rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.overlayClose:hover {
+    background: #231F1E;
+    color: #FFFFFF;
+}
+
+.overlayInner {
+    width: 80%;
+    text-align: center;
+}
+
+.overlayLabel {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.65rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #D98324;
+    margin-bottom: 0.75rem;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}

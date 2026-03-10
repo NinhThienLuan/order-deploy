@@ -12,7 +12,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -147,6 +146,11 @@ public class DataInit implements CommandLineRunner {
     public static final UUID VAR_COLD_BREW_S = UUID.fromString("00000000-0000-0000-0007-000000000024");
     public static final UUID VAR_COLD_BREW_M = UUID.fromString("00000000-0000-0000-0007-000000000025");
 
+    // Strawberry Smoothie S/M/L (Normalizing sequence)
+    public static final UUID VAR_STRAWBERRY_SMO_S = UUID.fromString("00000000-0000-0000-0007-000000000026");
+    public static final UUID VAR_STRAWBERRY_SMO_M = UUID.fromString("00000000-0000-0000-0007-000000000027");
+    public static final UUID VAR_STRAWBERRY_SMO_L = UUID.fromString("00000000-0000-0000-0007-000000000028");
+
     // ─── Order UUIDs ─────────────────────────────────────────────────────────────
     public static final UUID ORDER_1_ID = UUID.fromString("00000000-0000-0000-0008-000000000001");
     public static final UUID ORDER_2_ID = UUID.fromString("00000000-0000-0000-0008-000000000002");
@@ -173,6 +177,9 @@ public class DataInit implements CommandLineRunner {
     public static final UUID REFUND_3_ID = UUID.fromString("00000000-0000-0000-0011-000000000003");
 
     // ─────────────────────────────────────────────────────────────────────────────
+    // ─── Local asset base path (served by frontend static assets) ────────────────
+    // NOTE: We are transitioning to Cloudinary for production-ready image hosting.
+    private static final String IMG_BASE = "/assets/products/";
 
     @Override
     @Transactional
@@ -315,7 +322,7 @@ public class DataInit implements CommandLineRunner {
     }
 
     private void saveProfile(AccountEntity account, String firstName, String lastName,
-            GenderEnum gender, LocalDate birthDate) {
+                             GenderEnum gender, LocalDate birthDate) {
         profileRepository.save(ProfileEntity.builder()
                 .account(account)
                 .firstName(firstName)
@@ -431,6 +438,7 @@ public class DataInit implements CommandLineRunner {
     private ProductVariantEntity varChaiS, varChaiM, varChaiL;
     private ProductVariantEntity varEarlGreyS, varEarlGreyM, varEarlGreyL;
     private ProductVariantEntity varBananaSmS, varBananaSmM, varBananaSmL;
+    private ProductVariantEntity varStrawberrySmS, varStrawberrySmM, varStrawberrySmL;
     private ProductVariantEntity varColdBrewS, varColdBrewM;
 
     private void seedProducts() {
@@ -444,7 +452,9 @@ public class DataInit implements CommandLineRunner {
                 .type("HOT").active(true).category(catEspresso).build());
         productImageRepository.save(ProductImageEntity.builder()
                 .id(IMG_ESPRESSO_ID).product(espresso)
-                .imageUrl("https://res.cloudinary.com/franchise/image/espresso.jpg").isPrimary(true).build());
+                .imageUrl("https://res.cloudinary.com/dbi35fapj/image/upload/v1773052588/products/ng4xocgcanrcy15gtkhr.png")
+                .isPrimary(true)
+                .build());
         varEspressoS = saveVariant(VAR_ESPRESSO_S, espresso, "Single Shot (S)", new BigDecimal("35000"));
         varEspressoM = saveVariant(VAR_ESPRESSO_M, espresso, "Double Shot (M)", new BigDecimal("45000"));
         linkIngredient(varEspressoS, ingEspresso, new BigDecimal("1"), "shot");
@@ -458,7 +468,9 @@ public class DataInit implements CommandLineRunner {
                 .type("HOT").active(true).category(catEspresso).build());
         productImageRepository.save(ProductImageEntity.builder()
                 .id(IMG_LATTE_ID).product(latte)
-                .imageUrl("https://res.cloudinary.com/franchise/image/latte.jpg").isPrimary(true).build());
+                .imageUrl("https://res.cloudinary.com/dbi35fapj/image/upload/v1773052754/products/mj0aeucicnhstpxkev81.png")
+                .isPrimary(true)
+                .build());
         varLatteS = saveVariant(VAR_LATTE_S, latte, "Small (S)", new BigDecimal("55000"));
         varLatteM = saveVariant(VAR_LATTE_M, latte, "Medium (M)", new BigDecimal("65000"));
         varLatteL = saveVariant(VAR_LATTE_L, latte, "Large (L)", new BigDecimal("75000"));
@@ -477,7 +489,9 @@ public class DataInit implements CommandLineRunner {
                 .type("HOT").active(true).category(catEspresso).build());
         productImageRepository.save(ProductImageEntity.builder()
                 .id(IMG_CAPPUCCINO_ID).product(cappuccino)
-                .imageUrl("https://res.cloudinary.com/franchise/image/cappuccino.jpg").isPrimary(true).build());
+                .imageUrl("https://res.cloudinary.com/dbi35fapj/image/upload/v1773052870/products/r94b557vvhtabmbpuemz.png")
+                .isPrimary(true)
+                .build());
         varCappuccinoS = saveVariant(VAR_CAPPUCCINO_S, cappuccino, "Small (S)", new BigDecimal("55000"));
         varCappuccinoM = saveVariant(VAR_CAPPUCCINO_M, cappuccino, "Medium (M)", new BigDecimal("65000"));
         varCappuccinoL = saveVariant(VAR_CAPPUCCINO_L, cappuccino, "Large (L)", new BigDecimal("75000"));
@@ -496,7 +510,9 @@ public class DataInit implements CommandLineRunner {
                 .type("HOT_ICED").active(true).category(catEspresso).build());
         productImageRepository.save(ProductImageEntity.builder()
                 .id(IMG_AMERICANO_ID).product(americano)
-                .imageUrl("https://res.cloudinary.com/franchise/image/americano.jpg").isPrimary(true).build());
+                .imageUrl("https://res.cloudinary.com/dbi35fapj/image/upload/v1773052901/products/uryifm9viuoduvwfrw7m.png")
+                .isPrimary(true)
+                .build());
         varAmericanoS = saveVariant(VAR_AMERICANO_S, americano, "Small (S)", new BigDecimal("45000"));
         varAmericanoM = saveVariant(VAR_AMERICANO_M, americano, "Medium (M)", new BigDecimal("55000"));
         varAmericanoL = saveVariant(VAR_AMERICANO_L, americano, "Large (L)", new BigDecimal("65000"));
@@ -507,6 +523,8 @@ public class DataInit implements CommandLineRunner {
         // ── TEA & MATCHA CATEGORY ───────────────────────────────────────────────
 
         // 5. Matcha Latte
+        // ℹ️ Không có prod_matcha_latte.png trong assets → dùng prod_mocha.png làm placeholder
+        //    (màu xanh tương tự). Thay bằng ảnh thật khi có.
         ProductEntity matchaLatte = productRepository.save(ProductEntity.builder()
                 .id(PROD_MATCHA_LATTE_ID).name("Matcha Latte")
                 .description(
@@ -514,7 +532,9 @@ public class DataInit implements CommandLineRunner {
                 .type("HOT_ICED").active(true).category(catTea).build());
         productImageRepository.save(ProductImageEntity.builder()
                 .id(IMG_MATCHA_LATTE_ID).product(matchaLatte)
-                .imageUrl("https://res.cloudinary.com/franchise/image/matcha_latte.jpg").isPrimary(true).build());
+                .imageUrl("https://res.cloudinary.com/dbi35fapj/image/upload/v1773052934/products/bcmmrcedtm63u3euqp1i.png")
+                .isPrimary(true)
+                .build());
         varMatchaS = saveVariant(VAR_MATCHA_S, matchaLatte, "Small (S)", new BigDecimal("65000"));
         varMatchaM = saveVariant(VAR_MATCHA_M, matchaLatte, "Medium (M)", new BigDecimal("75000"));
         varMatchaL = saveVariant(VAR_MATCHA_L, matchaLatte, "Large (L)", new BigDecimal("85000"));
@@ -533,7 +553,9 @@ public class DataInit implements CommandLineRunner {
                 .type("HOT_ICED").active(true).category(catTea).build());
         productImageRepository.save(ProductImageEntity.builder()
                 .id(IMG_CHAI_TEA_ID).product(chaiTea)
-                .imageUrl("https://res.cloudinary.com/franchise/image/chai_tea.jpg").isPrimary(true).build());
+                .imageUrl("https://res.cloudinary.com/dbi35fapj/image/upload/v1773052959/products/qb5b9himqiamu1c4ayz4.png")
+                .isPrimary(true)
+                .build());
         varChaiS = saveVariant(VAR_CHAI_S, chaiTea, "Small (S)", new BigDecimal("55000"));
         varChaiM = saveVariant(VAR_CHAI_M, chaiTea, "Medium (M)", new BigDecimal("65000"));
         varChaiL = saveVariant(VAR_CHAI_L, chaiTea, "Large (L)", new BigDecimal("75000"));
@@ -546,6 +568,8 @@ public class DataInit implements CommandLineRunner {
         linkIngredient(varChaiL, ingSugarSyrup, new BigDecimal("15"), "ml");
 
         // 7. Earl Grey
+        // ℹ️ Không có prod_earl_grey.png trong assets → dùng prod_flat_white.png làm placeholder.
+        //    Thay bằng ảnh thật khi có.
         ProductEntity earlGrey = productRepository.save(ProductEntity.builder()
                 .id(PROD_EARL_GREY_ID).name("Earl Grey Milk Tea")
                 .description(
@@ -553,7 +577,9 @@ public class DataInit implements CommandLineRunner {
                 .type("HOT_ICED").active(true).category(catTea).build());
         productImageRepository.save(ProductImageEntity.builder()
                 .id(IMG_EARL_GREY_ID).product(earlGrey)
-                .imageUrl("https://res.cloudinary.com/franchise/image/earl_grey.jpg").isPrimary(true).build());
+                .imageUrl("https://res.cloudinary.com/dbi35fapj/image/upload/v1773052991/products/iefutlimczgruf3n2mhk.png")
+                .isPrimary(true)
+                .build());
         varEarlGreyS = saveVariant(VAR_EARL_GREY_S, earlGrey, "Small (S)", new BigDecimal("55000"));
         varEarlGreyM = saveVariant(VAR_EARL_GREY_M, earlGrey, "Medium (M)", new BigDecimal("65000"));
         varEarlGreyL = saveVariant(VAR_EARL_GREY_L, earlGrey, "Large (L)", new BigDecimal("75000"));
@@ -567,6 +593,8 @@ public class DataInit implements CommandLineRunner {
         // ── SMOOTHIES & COLD BREW CATEGORY ────────────────────────────────────
 
         // 8. Banana Smoothie
+        // ℹ️ Không có prod_banana_smoothie.png trong assets → dùng prod_vanilla_frappuccino.png làm placeholder.
+        //    Thay bằng ảnh thật khi có.
         ProductEntity bananaSmoothie = productRepository.save(ProductEntity.builder()
                 .id(PROD_BANANA_SMOOTHIE_ID).name("Banana Smoothie")
                 .description(
@@ -574,7 +602,9 @@ public class DataInit implements CommandLineRunner {
                 .type("COLD").active(true).category(catSmoothie).build());
         productImageRepository.save(ProductImageEntity.builder()
                 .id(IMG_BANANA_SMOOTHIE_ID).product(bananaSmoothie)
-                .imageUrl("https://res.cloudinary.com/franchise/image/banana_smoothie.jpg").isPrimary(true).build());
+                .imageUrl("https://res.cloudinary.com/dbi35fapj/image/upload/v1773053021/products/d7hk16yysn5ip7d9euoq.png")
+                .isPrimary(true)
+                .build());
         varBananaSmS = saveVariant(VAR_BANANA_SMO_S, bananaSmoothie, "Small (S)", new BigDecimal("55000"));
         varBananaSmM = saveVariant(VAR_BANANA_SMO_M, bananaSmoothie, "Medium (M)", new BigDecimal("65000"));
         varBananaSmL = saveVariant(VAR_BANANA_SMO_L, bananaSmoothie, "Large (L)", new BigDecimal("75000"));
@@ -587,6 +617,8 @@ public class DataInit implements CommandLineRunner {
         linkIngredient(varBananaSmL, ingWhippingCream, new BigDecimal("30"), "ml");
 
         // 9. Strawberry Smoothie
+        // ℹ️ Không có prod_strawberry_smoothie.png trong assets → dùng prod_macchiato.png làm placeholder.
+        //    Thay bằng ảnh thật khi có.
         ProductEntity strawberrySmoothie = productRepository.save(ProductEntity.builder()
                 .id(PROD_STRAWBERRY_SMO_ID).name("Strawberry Smoothie")
                 .description(
@@ -594,19 +626,12 @@ public class DataInit implements CommandLineRunner {
                 .type("COLD").active(true).category(catSmoothie).build());
         productImageRepository.save(ProductImageEntity.builder()
                 .id(IMG_STRAWBERRY_SMO_ID).product(strawberrySmoothie)
-                .imageUrl("https://res.cloudinary.com/franchise/image/strawberry_smoothie.jpg").isPrimary(true)
+                .imageUrl("https://res.cloudinary.com/dbi35fapj/image/upload/v1773053052/products/ddpwubysvnej06o3opzc.png")
+                .isPrimary(true)
                 .build());
-        // Strawberry Smoothie shares S/M/L with banana count = 3
-        // (we've already declared vars so we reuse the field pattern, but there are no
-        // dedicated vars declared above
-        // — we skip dedicated VAR fields here and just save directly as we only need
-        // them for OrderItems)
-        ProductVariantEntity varStrawberrySmS = saveVariant(UUID.fromString("00000000-0000-0000-0007-100000000001"),
-                strawberrySmoothie, "Small (S)", new BigDecimal("5.50"));
-        ProductVariantEntity varStrawberrySmM = saveVariant(UUID.fromString("00000000-0000-0000-0007-100000000002"),
-                strawberrySmoothie, "Medium (M)", new BigDecimal("6.50"));
-        ProductVariantEntity varStrawberrySmL = saveVariant(UUID.fromString("00000000-0000-0000-0007-100000000003"),
-                strawberrySmoothie, "Large (L)", new BigDecimal("7.50"));
+        varStrawberrySmS = saveVariant(VAR_STRAWBERRY_SMO_S, strawberrySmoothie, "Small (S)", new BigDecimal("55000"));
+        varStrawberrySmM = saveVariant(VAR_STRAWBERRY_SMO_M, strawberrySmoothie, "Medium (M)", new BigDecimal("65000"));
+        varStrawberrySmL = saveVariant(VAR_STRAWBERRY_SMO_L, strawberrySmoothie, "Large (L)", new BigDecimal("75000"));
         linkIngredient(varStrawberrySmS, ingStrawberry, new BigDecimal("100"), "g");
         linkIngredient(varStrawberrySmS, ingOatMilk, new BigDecimal("100"), "ml");
         linkIngredient(varStrawberrySmM, ingStrawberry, new BigDecimal("150"), "g");
@@ -623,7 +648,9 @@ public class DataInit implements CommandLineRunner {
                 .type("COLD").active(true).category(catSmoothie).build());
         productImageRepository.save(ProductImageEntity.builder()
                 .id(IMG_COLD_BREW_ID).product(coldBrew)
-                .imageUrl("https://res.cloudinary.com/franchise/image/cold_brew.jpg").isPrimary(true).build());
+                .imageUrl("https://res.cloudinary.com/dbi35fapj/image/upload/v1773053082/products/at2ltjfcrqpeqaylszm8.png")
+                .isPrimary(true)
+                .build());
         varColdBrewS = saveVariant(VAR_COLD_BREW_S, coldBrew, "250ml (S)", new BigDecimal("55000"));
         varColdBrewM = saveVariant(VAR_COLD_BREW_M, coldBrew, "350ml (M)", new BigDecimal("65000"));
         linkIngredient(varColdBrewS, ingEspresso, new BigDecimal("2"), "shot");
@@ -645,7 +672,7 @@ public class DataInit implements CommandLineRunner {
     }
 
     private void linkIngredient(ProductVariantEntity variant, IngredientEntity ingredient,
-            BigDecimal quantity, String unit) {
+                                BigDecimal quantity, String unit) {
         productVariantIngredientRepository.save(ProductVariantIngredientEntity.builder()
                 .variant(variant)
                 .ingredient(ingredient)
@@ -667,14 +694,14 @@ public class DataInit implements CommandLineRunner {
                 .deliveryAddress("123 Nguyen Hue Blvd, District 1, HCMC")
                 .storeId(1L)
                 .orderTime(LocalDateTime.of(2026, 2, 28, 9, 0))
-                .totalAmount(new BigDecimal("10.00"))
+                .totalAmount(new BigDecimal("100000"))
                 .build());
         orderItemRepository.save(OrderItemEntity.builder()
                 .order(order1).productVariant(varLatteM)
-                .quantity(1).unitPrice(new BigDecimal("6.50")).build());
+                .quantity(1).unitPrice(new BigDecimal("65000")).build());
         orderItemRepository.save(OrderItemEntity.builder()
                 .order(order1).productVariant(varEspressoS)
-                .quantity(1).unitPrice(new BigDecimal("3.50")).build());
+                .quantity(1).unitPrice(new BigDecimal("35000")).build());
         // No payment for PENDING order
 
         // ── Order 2: PAID by Customer 2 — VNPay ────────────────────────────────
@@ -687,14 +714,14 @@ public class DataInit implements CommandLineRunner {
                 .deliveryAddress("456 Le Loi St, District 1, HCMC")
                 .storeId(1L)
                 .orderTime(LocalDateTime.of(2026, 2, 28, 10, 15))
-                .totalAmount(new BigDecimal("12.00"))
+                .totalAmount(new BigDecimal("120000"))
                 .build());
         orderItemRepository.save(OrderItemEntity.builder()
                 .order(order2).productVariant(varMatchaM)
-                .quantity(1).unitPrice(new BigDecimal("7.50")).build());
+                .quantity(1).unitPrice(new BigDecimal("75000")).build());
         orderItemRepository.save(OrderItemEntity.builder()
                 .order(order2).productVariant(varEspressoM)
-                .quantity(1).unitPrice(new BigDecimal("4.50")).build());
+                .quantity(1).unitPrice(new BigDecimal("45000")).build());
         // Payment 1 — PAID via VNPay
         PaymentEntity pay1 = paymentRepository.save(PaymentEntity.builder()
                 .id(PAY_1_ID)
@@ -702,19 +729,18 @@ public class DataInit implements CommandLineRunner {
                 .transactionId("VNP20260228-00120001")
                 .paymentMethod(PaymentMethod.VNPAY)
                 .status(PaymentStatus.PAID)
-                .amountPaid(new BigDecimal("12.00"))
+                .amountPaid(new BigDecimal("120000"))
                 .paymentDate(LocalDateTime.parse("2026-02-28T03:16:00"))
+                .vnpResponseCode("00")
+                .vnpBankCode("NCB")
                 .build());
         transactionRepository.save(TransactionEntity.builder()
                 .id(TXN_1_ID)
                 .payment(pay1)
                 .vnpTxnRef("ORD-2026-0002")
                 .vnpTransactionNo("14523876")
-                .vnpResponseCode("00")
-                .vnpBankCode("NCB")
                 .type(TransactionType.PAYMENT)
-                .amount(new BigDecimal("12.00"))
-                .status(TransactionStatus.SUCCESS)
+                .amount(new BigDecimal("120000"))
                 .build());
 
         // ── Order 3: PREPARING by Customer 3 — MOMO ────────────────────────────
@@ -726,17 +752,17 @@ public class DataInit implements CommandLineRunner {
                 .orderNumber("ORD-2026-0003")
                 .storeId(2L)
                 .orderTime(LocalDateTime.of(2026, 2, 28, 11, 30))
-                .totalAmount(new BigDecimal("19.50"))
+                .totalAmount(new BigDecimal("195000"))
                 .build());
         orderItemRepository.save(OrderItemEntity.builder()
                 .order(order3).productVariant(varCappuccinoL)
-                .quantity(1).unitPrice(new BigDecimal("7.50")).build());
+                .quantity(1).unitPrice(new BigDecimal("75000")).build());
         orderItemRepository.save(OrderItemEntity.builder()
                 .order(order3).productVariant(varChaiL)
-                .quantity(1).unitPrice(new BigDecimal("7.50")).build());
+                .quantity(1).unitPrice(new BigDecimal("75000")).build());
         orderItemRepository.save(OrderItemEntity.builder()
                 .order(order3).productVariant(varAmericanoS)
-                .quantity(1).unitPrice(new BigDecimal("4.50")).build());
+                .quantity(1).unitPrice(new BigDecimal("45000")).build());
         // Payment 2 — PAID via MOMO
         PaymentEntity pay2 = paymentRepository.save(PaymentEntity.builder()
                 .id(PAY_2_ID)
@@ -744,19 +770,18 @@ public class DataInit implements CommandLineRunner {
                 .transactionId("MOMO20260228-00195003")
                 .paymentMethod(PaymentMethod.MOMO)
                 .status(PaymentStatus.PAID)
-                .amountPaid(new BigDecimal("19.50"))
+                .amountPaid(new BigDecimal("195000"))
                 .paymentDate(LocalDateTime.parse("2026-02-28T04:31:00"))
+                .vnpResponseCode("0")
+                .vnpBankCode("MOMO")
                 .build());
         transactionRepository.save(TransactionEntity.builder()
                 .id(TXN_2_ID)
                 .payment(pay2)
                 .vnpTxnRef("ORD-2026-0003")
                 .vnpTransactionNo("MOMO-95471234")
-                .vnpResponseCode("00")
-                .vnpBankCode("MOMO")
                 .type(TransactionType.PAYMENT)
-                .amount(new BigDecimal("19.50"))
-                .status(TransactionStatus.SUCCESS)
+                .amount(new BigDecimal("195000"))
                 .build());
 
         // ── Order 4: COMPLETED by Customer 4 — CASH ────────────────────────────
@@ -768,33 +793,32 @@ public class DataInit implements CommandLineRunner {
                 .orderNumber("ORD-2026-0004")
                 .storeId(1L)
                 .orderTime(LocalDateTime.of(2026, 2, 27, 14, 0))
-                .totalAmount(new BigDecimal("12.00"))
+                .totalAmount(new BigDecimal("120000"))
                 .build());
         orderItemRepository.save(OrderItemEntity.builder()
                 .order(order4).productVariant(varBananaSmM)
-                .quantity(1).unitPrice(new BigDecimal("6.50")).build());
+                .quantity(1).unitPrice(new BigDecimal("65000")).build());
         orderItemRepository.save(OrderItemEntity.builder()
                 .order(order4).productVariant(varColdBrewS)
-                .quantity(1).unitPrice(new BigDecimal("5.50")).build());
+                .quantity(1).unitPrice(new BigDecimal("55000")).build());
         // Payment 3 — PAID via CASH
         PaymentEntity pay3 = paymentRepository.save(PaymentEntity.builder()
                 .id(PAY_3_ID)
                 .order(order4)
                 .paymentMethod(PaymentMethod.CASH)
                 .status(PaymentStatus.PAID)
-                .amountPaid(new BigDecimal("12.00"))
+                .amountPaid(new BigDecimal("120000"))
                 .paymentDate(LocalDateTime.parse("2026-02-27T07:05:00"))
+                .vnpResponseCode("00")
+                .vnpBankCode("CASH")
                 .build());
         transactionRepository.save(TransactionEntity.builder()
                 .id(TXN_3_ID)
                 .payment(pay3)
                 .vnpTxnRef("ORD-2026-0004")
                 .vnpTransactionNo("CASH-LOCAL-0004")
-                .vnpResponseCode("00")
-                .vnpBankCode("CASH")
                 .type(TransactionType.PAYMENT)
-                .amount(new BigDecimal("12.00"))
-                .status(TransactionStatus.SUCCESS)
+                .amount(new BigDecimal("120000"))
                 .build());
 
         // ── Order 5: CANCELED by Customer 1 (was PAID, now canceled) ───────────
@@ -807,19 +831,19 @@ public class DataInit implements CommandLineRunner {
                 .deliveryAddress("123 Nguyen Hue Blvd, District 1, HCMC")
                 .storeId(2L)
                 .orderTime(LocalDateTime.of(2026, 2, 26, 16, 45))
-                .totalAmount(new BigDecimal("6.50"))
+                .totalAmount(new BigDecimal("65000"))
                 .build());
         orderItemRepository.save(OrderItemEntity.builder()
                 .order(order5).productVariant(varEarlGreyM)
-                .quantity(1).unitPrice(new BigDecimal("6.50")).build());
+                .quantity(1).unitPrice(new BigDecimal("65000")).build());
         // Payment 4 — REFUNDED
-        PaymentEntity pay4 = paymentRepository.save(PaymentEntity.builder()
+        paymentRepository.save(PaymentEntity.builder()
                 .id(PAY_4_ID)
                 .order(order5)
                 .transactionId("VNP20260226-00065005")
                 .paymentMethod(PaymentMethod.VNPAY)
                 .status(PaymentStatus.REFUNDED)
-                .amountPaid(new BigDecimal("6.50"))
+                .amountPaid(new BigDecimal("65000"))
                 .paymentDate(LocalDateTime.parse("2026-02-26T09:46:00"))
                 .build());
 
@@ -832,14 +856,14 @@ public class DataInit implements CommandLineRunner {
                 .orderNumber("ORD-2026-0006")
                 .storeId(1L)
                 .orderTime(LocalDateTime.of(2026, 3, 1, 8, 0))
-                .totalAmount(new BigDecimal("13.00"))
+                .totalAmount(new BigDecimal("130000"))
                 .build());
         orderItemRepository.save(OrderItemEntity.builder()
                 .order(order6).productVariant(varColdBrewM)
-                .quantity(1).unitPrice(new BigDecimal("6.50")).build());
+                .quantity(1).unitPrice(new BigDecimal("65000")).build());
         orderItemRepository.save(OrderItemEntity.builder()
                 .order(order6).productVariant(varMatchaS)
-                .quantity(1).unitPrice(new BigDecimal("6.50")).build());
+                .quantity(1).unitPrice(new BigDecimal("65000")).build());
         // Payment 5 — PAID via PAYOS
         paymentRepository.save(PaymentEntity.builder()
                 .id(PAY_5_ID)
@@ -847,7 +871,7 @@ public class DataInit implements CommandLineRunner {
                 .transactionId("PAYOS20260301-00140006")
                 .paymentMethod(PaymentMethod.PAYOS)
                 .status(PaymentStatus.PAID)
-                .amountPaid(new BigDecimal("13.00"))
+                .amountPaid(new BigDecimal("130000"))
                 .paymentDate(LocalDateTime.parse("2026-03-01T01:01:00"))
                 .build());
 

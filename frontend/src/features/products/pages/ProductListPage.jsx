@@ -1,8 +1,10 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import Navbar from '../../../layouts/Navbar';
-import { useCart } from '../../cart/CartContext';
-import { getProducts, getCategories } from '../products.service';
+import Navbar from '@/layouts/Navbar';
+import { useCart } from '@/features/orders/services/CartContext';
+import { getProducts, getCategories } from '@/features/products/services/products.service';
+import ProductCard from '@/features/products/components/ProductCard/ProductCard';
+import heroImage from '@/assets/images/hero/espresso-machine-hero.png';
 import styles from './ProductListPage.module.css';
 
 const formatVND = (n) =>
@@ -17,6 +19,7 @@ export default function ProductListPage() {
     const [sort, setSort] = useState('default');
     const [page, setPage] = useState(1);
     const [addedIds, setAddedIds] = useState(new Set());
+    const [quickAddProductId, setQuickAddProductId] = useState(null);
     const { addItem } = useCart();
 
     const [products, setProducts] = useState([]);
@@ -39,7 +42,7 @@ export default function ProductListPage() {
 
     // Fetch categories once
     useEffect(() => {
-        getCategories().then(setCategories).catch(() => {});
+        getCategories().then(setCategories).catch(() => { });
     }, []);
 
     // Fetch products when page/category/search changes
@@ -66,21 +69,16 @@ export default function ProductListPage() {
 
     const sorted = useMemo(() => {
         let list = [...products];
-        if (sort === 'price-asc')  list.sort((a, b) => a.price - b.price);
+        if (sort === 'price-asc') list.sort((a, b) => a.price - b.price);
         if (sort === 'price-desc') list.sort((a, b) => b.price - a.price);
-        if (sort === 'name-asc')   list.sort((a, b) => a.productName.localeCompare(b.productName));
-        if (sort === 'name-desc')  list.sort((a, b) => b.productName.localeCompare(a.productName));
+        if (sort === 'name-asc') list.sort((a, b) => a.productName.localeCompare(b.productName));
+        if (sort === 'name-desc') list.sort((a, b) => b.productName.localeCompare(a.productName));
         return list;
     }, [products, sort]);
 
-    const handleAdd = (product) => {
-        addItem({
-            id: product.id,
-            productName: product.productName,
-            imageUrl: product.imageUrl,
-            price: product.price,
-            category: product.categoryName,
-        });
+    const handleAdd = (product, variant) => {
+        addItem(product, 1, variant);
+        setQuickAddProductId(null);
         setAddedIds((prev) => new Set(prev).add(product.id));
         setTimeout(() => {
             setAddedIds((prev) => {
@@ -112,15 +110,25 @@ export default function ProductListPage() {
             <div className={styles.page}>
                 {/* ── Page Header ── */}
                 <header className={styles.pageHeader}>
-                    <div className={styles.headerInner}>
-                        <p className={styles.headerEyebrow}>Our Menu</p>
-                        <h1 className={styles.pageTitle}>
-                            Crafted<br />with Purpose
-                        </h1>
-                        <p className={styles.pageSubtitle}>
-                            Every cup sourced from single-origin farms.<br />
-                            Every sip a story worth telling.
-                        </p>
+                    <div className={styles.headerInner + ' ' + styles.headerFlex}>
+                        <div className={styles.headerText}>
+                            <p className={styles.headerEyebrow}>Our Menu</p>
+                            <h1 className={styles.pageTitle}>
+                                Crafted<br />with Purpose
+                            </h1>
+                            <p className={styles.pageSubtitle}>
+                                Every cup sourced from single-origin farms.<br />
+                                Every sip a story worth telling.
+                            </p>
+                        </div>
+                    </div>
+                    <div className={styles.headerImageWrap}>
+                        <img
+                            src={heroImage}
+                            alt="Professional espresso coffee machine pulling a dark shot of coffee"
+                            className={styles.headerImage}
+                            loading="lazy"
+                        />
                     </div>
                 </header>
 
@@ -225,65 +233,16 @@ export default function ProductListPage() {
                         </div>
                     ) : (
                         <div className={styles.grid}>
-                            {sorted.map((product) => {
-                                const isOut = product.status === 'OutOfStock';
-                                const isAdded = addedIds.has(product.id);
-                                return (
-                                    <div key={product.id} className={`${styles.card} ${isOut ? styles.cardOut : ''}`}>
-
-                                        {/* Image area */}
-                                        <Link to={`/menu/${product.id}`} className={styles.imageLink}>
-                                        <div className={styles.imageWrap}>
-                                            <img
-                                                src={product.imageUrl || 'https://placehold.co/400x400/EFECE3/231F1E?text=No+Image'}
-                                                alt={product.productName}
-                                                className={styles.image}
-                                                loading="lazy"
-                                                onError={(e) => { e.target.src = 'https://placehold.co/400x400/EFECE3/231F1E?text=No+Image'; }}
-                                            />
-
-                                            {/* Badge (bottom-left of image) */}
-                                            {product.badge && !isOut && (
-                                                <span className={styles.badge}>{product.badge}</span>
-                                            )}
-                                            {isOut && (
-                                                <span className={`${styles.badge} ${styles.badgeOut}`}>Out of Stock</span>
-                                            )}
-
-                                            {/* Add to cart — top-right icon button */}
-                                            {!isOut && (
-                                                <button
-                                                    className={`${styles.cartIconBtn} ${isAdded ? styles.cartIconBtnAdded : ''}`}
-                                                    onClick={(e) => { e.preventDefault(); handleAdd(product); }}
-                                                    disabled={isAdded}
-                                                    aria-label={isAdded ? 'Added to cart' : 'Add to cart'}
-                                                >
-                                                    {isAdded ? (
-                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                                            <polyline points="20 6 9 17 4 12" />
-                                                        </svg>
-                                                    ) : (
-                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                            <circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" />
-                                                            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
-                                                        </svg>
-                                                    )}
-                                                </button>
-                                            )}
-                                        </div>
-                                        </Link>
-
-                                        {/* Info */}
-                                        <div className={styles.info}>
-                                            <span className={styles.category}>{product.categoryName}</span>
-                                            <div className={styles.nameRow}>
-                                                <h3 className={styles.name}>{product.productName}</h3>
-                                                <span className={styles.price}>{formatVND(product.price)}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                );
-                            })}
+                            {sorted.map((product) => (
+                                <ProductCard
+                                    key={product.id}
+                                    product={product}
+                                    isAdded={addedIds.has(product.id)}
+                                    quickAddProductId={quickAddProductId}
+                                    setQuickAddProductId={setQuickAddProductId}
+                                    onAddVariant={(variant) => handleAdd(product, variant)}
+                                />
+                            ))}
                         </div>
                     )}
                 </div>

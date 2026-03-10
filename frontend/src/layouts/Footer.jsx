@@ -1,5 +1,5 @@
 import styles from './Footer.module.css';
-import { FOOTER_LINKS } from '../features/landing/landing.constants';
+import { FOOTER_LINKS } from '@/features/storefront/constants/landing.constants';
 
 const Footer = () => (
     <footer className={styles.footer} id="footer">
