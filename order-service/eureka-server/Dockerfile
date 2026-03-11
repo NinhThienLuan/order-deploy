@@ -23,8 +23,7 @@ WORKDIR /app
 RUN apk --no-cache add curl
 
 # Copy the built artifact
-# COPY --from=build /app/eureka-server/target/*.jar app.jar
-COPY --from=build /app/target/*.jar app.jar
+COPY --from=build /app/eureka-server/target/*.jar app.jar
 
 # Expose the port
 EXPOSE 8761

@@ -18,7 +18,8 @@
     <name>Franchise Microservices Parent</name>
 
     <modules>
-        <module>backend</module>
+        <module>product-order-payment</module>
+        <module>auth-service</module>
         <module>api-gateway</module>
         <module>eureka-server</module>
     </modules>
