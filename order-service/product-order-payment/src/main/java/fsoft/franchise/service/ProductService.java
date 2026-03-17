@@ -6,6 +6,7 @@ import fsoft.franchise.dto.products.ProductSummaryResponse;
 import fsoft.franchise.entity.ProductEntity;
 import org.springframework.data.domain.Page;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -16,12 +17,14 @@ public interface ProductService {
     /**
      * Paginated product list with optional filters.
      */
-    Page<ProductSummaryResponse> getProducts(int page, int size, UUID categoryId, String search, String type, Boolean active);
+    Page<ProductSummaryResponse> getProducts(int page, int size, UUID categoryId, String search, fsoft.franchise.enums.ProductType type, Boolean active);
 
     /**
      * Full product detail including variants and images.
      */
     ProductDetailResponse getProductById(UUID id);
+
+    List<ProductSummaryResponse> getRecommended();
 
     // ── Admin write operations ───────────────────────────────────────────────
 
@@ -32,6 +35,8 @@ public interface ProductService {
     void deleteProduct(UUID id);
 
     ProductDetailResponse toggleActive(UUID id);
+
+    ProductDetailResponse setRecommended(UUID id, boolean isRecommended);
 
     /**
      * Internal helper used by variant/image services. Returns a non-deleted

@@ -6,11 +6,13 @@ import fsoft.franchise.dto.products.ProductRequest;
 import fsoft.franchise.dto.products.ProductDetailResponse;
 import fsoft.franchise.dto.products.ProductSummaryResponse;
 import fsoft.franchise.dto.products.ProductVariantResponse;
+import fsoft.franchise.dto.products.VariantIngredientResponse;
 import fsoft.franchise.entity.CategoryEntity;
 import fsoft.franchise.entity.ProductEntity;
 import fsoft.franchise.entity.ProductImageEntity;
 import fsoft.franchise.entity.ProductVariantEntity;
 import fsoft.franchise.repository.CategoryRepository;
+import fsoft.franchise.repository.OrderItemRepository;
 import fsoft.franchise.repository.ProductRepository;
 import fsoft.franchise.service.ProductService;
 import jakarta.persistence.criteria.Predicate;
@@ -26,7 +28,9 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -40,12 +44,13 @@ public class ProductServiceImpl implements ProductService {
 
         private final ProductRepository productRepository;
         private final CategoryRepository categoryRepository;
+        private final OrderItemRepository orderItemRepository;
 
         // ── List ────────────────────────────────────────────────────────────────
 
         @Override
         public Page<ProductSummaryResponse> getProducts(int page, int size,
-                        UUID categoryId, String search, String type, Boolean active) {
+                        UUID categoryId, String search, fsoft.franchise.enums.ProductType type, Boolean active) {
                 Specification<ProductEntity> spec = buildSpec(categoryId, search, type, active);
                 PageRequest pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
                 return productRepository.findAll(spec, pageable)
@@ -61,17 +66,35 @@ public class ProductServiceImpl implements ProductService {
                 return toDetail(p);
         }
 
+        @Override
+        public List<ProductSummaryResponse> getRecommended() {
+                List<ProductEntity> topOrdered = orderItemRepository.findTopOrderedProducts(PageRequest.of(0, 3));
+                List<ProductEntity> managerPicks = productRepository.findByIsRecommendedTrueAndActiveTrueAndDeleteAtIsNull();
+
+                Map<UUID, ProductEntity> merged = new LinkedHashMap<>();
+                topOrdered.forEach(product -> merged.put(product.getId(), product));
+                managerPicks.forEach(product -> merged.putIfAbsent(product.getId(), product));
+
+                return merged.values().stream()
+                                .map(this::toSummary)
+                                .toList();
+        }
+
         // ── Admin write ───────────────────────────────────────────────────────────
 
         @Override
         @Transactional
         public ProductDetailResponse createProduct(ProductRequest request) {
+                if (productRepository.existsByNameIgnoreCaseAndDeleteAtIsNull(request.getName())) {
+                        throw new ApiException(ProductErrorCode.PRODUCT_ALREADY_EXISTS);
+                }
                 CategoryEntity category = findActiveCategoryById(request.getCategoryId());
                 ProductEntity product = ProductEntity.builder()
                                 .name(request.getName())
                                 .description(request.getDescription())
                                 .type(request.getType())
                                 .active(request.isActive())
+                                .isRecommended(Boolean.FALSE)
                                 .category(category)
                                 .build();
                 return toDetail(productRepository.save(product));
@@ -81,6 +104,9 @@ public class ProductServiceImpl implements ProductService {
         @Transactional
         public ProductDetailResponse updateProduct(UUID id, ProductRequest request) {
                 ProductEntity product = getNonDeletedProductOrThrow(id);
+                if (productRepository.existsByNameIgnoreCaseAndIdNotAndDeleteAtIsNull(request.getName(), id)) {
+                        throw new ApiException(ProductErrorCode.PRODUCT_ALREADY_EXISTS);
+                }
                 product.setName(request.getName());
                 product.setDescription(request.getDescription());
                 product.setType(request.getType());
@@ -96,14 +122,68 @@ public class ProductServiceImpl implements ProductService {
         public void deleteProduct(UUID id) {
                 ProductEntity product = getNonDeletedProductOrThrow(id);
                 product.setDeleteAt(LocalDateTime.now());
+                product.setActive(false);
+
+                // Cascade soft-delete to variants
+                if (product.getVariants() != null) {
+                        product.getVariants().forEach(v -> {
+                                if (v.getDeletedAt() == null) {
+                                        v.setDeletedAt(LocalDateTime.now());
+                                        v.setActive(false);
+                                }
+                        });
+                }
+
                 productRepository.save(product);
         }
 
         @Override
+    @Transactional
+    public ProductDetailResponse toggleActive(UUID id) {
+        ProductEntity product = getNonDeletedProductOrThrow(id);
+        boolean newStatus = !Boolean.TRUE.equals(product.getActive());
+
+        if (newStatus) {
+            List<String> missing = new ArrayList<>();
+            if (product.getName() == null || product.getName().isBlank()) missing.add("name");
+            if (product.getDescription() == null || product.getDescription().isBlank()) missing.add("description");
+            
+            if (product.getCategory() == null) {
+                missing.add("category");
+            } else if (!Boolean.TRUE.equals(product.getCategory().getActive())) {
+                throw new ApiException(ProductErrorCode.PRODUCT_INCOMPLETE, 
+                    "Cannot activate product because the category '" + product.getCategory().getName() + "' is currently inactive.");
+            }
+
+            if (product.getImages() == null || product.getImages().isEmpty()) missing.add("images");
+            
+            boolean hasVariants = product.getVariants() != null && product.getVariants().stream()
+                .anyMatch(v -> v.getDeletedAt() == null);
+            if (!hasVariants) missing.add("variants");
+
+            if (!missing.isEmpty()) {
+                throw new ApiException(ProductErrorCode.PRODUCT_INCOMPLETE, 
+                    "Product lacks required info: " + String.join(", ", missing));
+            }
+        }
+
+        product.setActive(newStatus);
+        
+        // Cascade status to variants
+        if (product.getVariants() != null) {
+            product.getVariants().stream()
+                .filter(v -> v.getDeletedAt() == null)
+                .forEach(v -> v.setActive(newStatus));
+        }
+
+        return toDetail(productRepository.save(product));
+    }
+
+        @Override
         @Transactional
-        public ProductDetailResponse toggleActive(UUID id) {
+        public ProductDetailResponse setRecommended(UUID id, boolean isRecommended) {
                 ProductEntity product = getNonDeletedProductOrThrow(id);
-                product.setActive(!Boolean.TRUE.equals(product.getActive()));
+                product.setIsRecommended(isRecommended);
                 return toDetail(productRepository.save(product));
         }
 
@@ -132,9 +212,7 @@ public class ProductServiceImpl implements ProductService {
                 return category;
         }
 
-        // ── Spec builder ─────────────────────────────────────────────────────────
-
-        private Specification<ProductEntity> buildSpec(UUID categoryId, String search, String type, Boolean active) {
+        private Specification<ProductEntity> buildSpec(UUID categoryId, String search, fsoft.franchise.enums.ProductType type, Boolean active) {
                 return (root, query, cb) -> {
                         List<Predicate> predicates = new ArrayList<>();
 
@@ -152,8 +230,8 @@ public class ProductServiceImpl implements ProductService {
                                                 cb.like(cb.lower(root.get("name")), like),
                                                 cb.like(cb.lower(root.get("description")), like)));
                         }
-                        if (type != null && !type.isBlank()) {
-                                predicates.add(cb.equal(cb.upper(root.get("type")), type.toUpperCase()));
+                        if (type != null) {
+                                predicates.add(cb.equal(root.get("type"), type));
                         }
                         return cb.and(predicates.toArray(new Predicate[0]));
                 };
@@ -188,11 +266,12 @@ public class ProductServiceImpl implements ProductService {
                                 .primaryImageUrl(primaryImg)
                                 .basePrice(basePrice)
                                 .active(p.getActive())
+                                .isRecommended(Boolean.TRUE.equals(p.getIsRecommended()))
                                 .build();
         }
 
         private ProductDetailResponse toDetail(ProductEntity p) {
-                List<ProductVariantResponse> variants = p.getVariants() == null ? List.of()
+                List<ProductVariantResponse> variants = p.getVariants() == null ? new ArrayList<ProductVariantResponse>()
                                 : p.getVariants().stream()
                                                 .filter(v -> Boolean.TRUE.equals(v.getActive())
                                                                 && v.getDeletedAt() == null)
@@ -202,6 +281,18 @@ public class ProductServiceImpl implements ProductService {
                                                                 .sizeName(v.getSizeName())
                                                                 .price(v.getPrice())
                                                                 .active(v.getActive())
+                                                                .ingredients(v.getIngredients() == null ? new ArrayList<VariantIngredientResponse>()
+                                                                                : v.getIngredients().stream()
+                                                                                                .map(i -> VariantIngredientResponse
+                                                                                                                .builder()
+                                                                                                                .ingredientId(i.getIngredient()
+                                                                                                                                .getId())
+                                                                                                                .name(i.getIngredient()
+                                                                                                                                .getName())
+                                                                                                                .quantity(i.getQuantity())
+                                                                                                                .unit(i.getUnit())
+                                                                                                                .build())
+                                                                                                .toList())
                                                                 .build())
                                                 .toList();
 
@@ -223,6 +314,7 @@ public class ProductServiceImpl implements ProductService {
                                 .categoryId(p.getCategory() != null ? p.getCategory().getId() : null)
                                 .categoryName(p.getCategory() != null ? p.getCategory().getName() : null)
                                 .active(p.getActive())
+                                .isRecommended(Boolean.TRUE.equals(p.getIsRecommended()))
                                 .variants(variants)
                                 .images(images)
                                 .build();

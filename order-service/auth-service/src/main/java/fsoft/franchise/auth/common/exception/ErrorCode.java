@@ -36,13 +36,16 @@ public enum ErrorCode {
     PHONE_NUMBER_EXISTS(4092, "Số điện thoại này đã được sử dụng!", HttpStatus.CONFLICT),
     ROLE_NOT_FOUND(4041, "Quyền hạn (Role) không tồn tại trong hệ thống!", HttpStatus.NOT_FOUND),
 
-    EMAIL_SEND_FAILED (5001, "Failed to send OTP email", HttpStatus.INTERNAL_SERVER_ERROR),
+    EMAIL_SEND_FAILED(5001, "Failed to send OTP email", HttpStatus.INTERNAL_SERVER_ERROR),
 
     OTP_EXPIRED(4003, "OTP has expired", HttpStatus.BAD_REQUEST),
     OTP_INVALID(4004, "Invalid OTP", HttpStatus.BAD_REQUEST),
 
     VERIFY_TOKEN_EXPIRED(4005, "Verify token has expired", HttpStatus.BAD_REQUEST),
-    VERIFY_TOKEN_INVALID(4006, "Invalid verify token", HttpStatus.BAD_REQUEST);
+    VERIFY_TOKEN_INVALID(4006, "Invalid verify token", HttpStatus.BAD_REQUEST),
+
+    SERVICE_UNAVAILABLE(5003, "Service unavailable - feature requires additional configuration",
+            HttpStatus.SERVICE_UNAVAILABLE);
 
     private final int code;
     private final String defaultMessage;

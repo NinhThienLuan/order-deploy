@@ -1,20 +1,15 @@
 package fsoft.franchise.controller;
 
 import fsoft.franchise.common.response.ApiResponse;
+import fsoft.franchise.dto.orders.*;
+import fsoft.franchise.common.exception.ApiException;
 import fsoft.franchise.exception.CommonErrorCode;
 import fsoft.franchise.security.JwtService;
-import fsoft.franchise.dto.orders.CreateOrderRequest;
-import fsoft.franchise.dto.orders.CreateOrderResponse;
-import fsoft.franchise.dto.orders.OrderCancelResponse;
-import fsoft.franchise.dto.orders.OrderDetailResponse;
-import fsoft.franchise.dto.orders.OrderHistoryPage;
-import fsoft.franchise.dto.orders.OrderStatusResponse;
-import fsoft.franchise.dto.payments.PaymentRequest;
-import fsoft.franchise.dto.payments.PaymentResponse;
 import fsoft.franchise.dto.payments.RefundRequest;
 import fsoft.franchise.dto.payments.RefundResponse;
 import fsoft.franchise.service.OrderService;
 import fsoft.franchise.service.RefundService;
+import fsoft.franchise.client.FranchiseClient;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -38,24 +33,28 @@ import java.util.UUID;
 @RequestMapping("/api/v1/orders")
 @Validated
 @RequiredArgsConstructor
-@Tag(name = "Orders", description = "Order creation, status, history, payment processing, and refund requests")
+@Tag(name = "Orders", description = "Order creation, status, history, payment processing, and refund requests. Permission varies by endpoint (CUSTOMER/ADMIN/MANAGER as documented per API).")
 public class OrderController {
 
         private final OrderService orderService;
         private final RefundService refundService;
         private final JwtService jwtService;
+        private final FranchiseClient franchiseClient;
 
         /**
          * POST /v1/orders — Tạo đơn hàng mới
          */
         @PostMapping
-        @Operation(summary = "Create order", description = "Create a new order for the authenticated customer.")
+        @Operation(summary = "Create order", description = "Create a new order for the authenticated user. Permission: CUSTOMER.")
         public ResponseEntity<ApiResponse<CreateOrderResponse>> createOrder(
                         HttpServletRequest request,
                         @Valid @RequestBody CreateOrderRequest body) {
 
                 String token = jwtService.getTokenFromRequest(request);
-                UUID customerId = UUID.fromString(jwtService.getUid(token));
+                UUID customerId = jwtService.getUserId(token);
+                if (customerId == null) {
+                        throw new ApiException(CommonErrorCode.UNAUTHORIZED);
+                }
 
                 CreateOrderResponse result = orderService.createOrder(body, customerId);
 
@@ -70,63 +69,107 @@ public class OrderController {
         }
 
         /**
-         * POST /v1/orders/{id}/payments/confirm — Gateway callback: confirm or fail a
-         * pending payment
+         * ── API 1: LÊN ĐƠN POS ──
          */
-        @PostMapping("/{id}/payments/confirm")
-        @Operation(summary = "Confirm payment", description = "Gateway callback to confirm or fail a pending payment for an order.")
-        public ResponseEntity<ApiResponse<PaymentResponse>> confirmPayment(
+        @PostMapping("/pos")
+        @Operation(summary = "Create POS order", description = "Create an order via POS interface")
+        @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'POS')")
+        public ResponseEntity<ApiResponse<CreatePosOrderResponse>> createPosOrder(
                         HttpServletRequest request,
-                        @PathVariable("id") UUID id,
-                        @RequestParam("paymentId") UUID paymentId,
-                        @RequestParam("success") boolean success) {
+                        @Valid @RequestBody CreatePosOrderRequest body) {
 
                 String token = jwtService.getTokenFromRequest(request);
-                UUID customerId = UUID.fromString(jwtService.getUid(token));
+                UUID userId = UUID.fromString(jwtService.getUid(token));
 
-                PaymentResponse result = orderService.confirmPayment(id, paymentId, success, customerId);
-
-                return ResponseEntity.ok()
-                                .body(ApiResponse.<PaymentResponse>builder()
-                                                .code(200)
-                                                .message(success ? "Payment confirmed successfully" : "Payment failed")
+                CreatePosOrderResponse result = orderService.createPosOrder(body, userId);
+                return ResponseEntity.status(HttpStatus.CREATED)
+                                .body(ApiResponse.<CreatePosOrderResponse>builder()
+                                                .code(201)
+                                                .message(CommonErrorCode.CREATED.getMessage())
                                                 .result(result)
                                                 .timestamp(Instant.now())
                                                 .path(request.getRequestURI())
                                                 .build());
+        }
+
+    @PatchMapping("/pos/{id}")
+    @Operation(summary = "Update POS order", description = "Update an order via POS interface")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'POS')")
+    public ResponseEntity<ApiResponse<UpdatePosOrderResponse>> updatePosOrder(
+            @PathVariable UUID id,
+            HttpServletRequest httpRequest,
+            @RequestBody @Valid UpdatePosOrderRequest body) {
+
+        String token = jwtService.getTokenFromRequest(httpRequest);
+        UUID userId = UUID.fromString(jwtService.getUid(token));
+
+        UpdatePosOrderResponse result = orderService.updatePosOrder(id, body, userId);
+
+        return ResponseEntity.ok(
+                ApiResponse.<UpdatePosOrderResponse>builder()
+                        .code(200)
+                        .message(CommonErrorCode.SUCCESS.getMessage())
+                        .result(result)
+                        .timestamp(Instant.now())
+                        .path(httpRequest.getRequestURI())
+                        .build());
+    }
+
+        /**
+         * ── API 2: ESTIMATE TIME ──
+         */
+        @GetMapping("/estimate")
+        @Operation(summary = "Estimate Preparation Time", description = "Gets estimated time based on queue")
+        public ResponseEntity<ApiResponse<EstimateResponse>> estimatePreparationTime(
+                        HttpServletRequest request,
+                        @RequestParam UUID storeId,
+                        @RequestParam int itemCount) {
+
+                EstimateResponse data = orderService.estimatePreparationTime(storeId, itemCount);
+                return ResponseEntity.ok(ApiResponse.<EstimateResponse>builder()
+                                .code(200)
+                                .message(CommonErrorCode.SUCCESS.getMessage())
+                                .result(data)
+                                .timestamp(Instant.now())
+                                .path(request.getRequestURI())
+                                .build());
         }
 
         /**
-         * POST /v1/orders/{id}/payments — Thanh toán đơn hàng
+         * ── API 3: FLAG ORDER ──
          */
-        @PostMapping("/{id}/payments")
-        @Operation(summary = "Process payment", description = "Initiate payment for an order. Returns a payment URL for gateway-based methods.")
-        public ResponseEntity<ApiResponse<PaymentResponse>> processPayment(
+        @PatchMapping("/{id}/flag")
+        @Operation(summary = "Flag an order", description = "Flags an active order that needs attention")
+        @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+        public ResponseEntity<ApiResponse<FlagOrderResponse>> flagOrder(
                         HttpServletRequest request,
                         @PathVariable("id") UUID id,
-                        @Valid @RequestBody PaymentRequest body) {
+                        @Valid @RequestBody FlagOrderRequest body,
+                        // Dùng tạm custom header / Lấy storeId dựa trên profile tài khoản thực tế của
+                        // bạn
+                        @RequestHeader("X-Store-Id") Long currentUserStoreId) {
 
                 String token = jwtService.getTokenFromRequest(request);
-                UUID customerId = UUID.fromString(jwtService.getUid(token));
-                String ipAddress = request.getRemoteAddr();
+                UUID currentUserId = UUID.fromString(jwtService.getUid(token));
+                String role = jwtService.getPrimaryRole(token);
 
-                PaymentResponse result = orderService.processPayment(id, body, customerId, ipAddress);
-
-                return ResponseEntity.ok()
-                                .body(ApiResponse.<PaymentResponse>builder()
-                                                .code(200)
-                                                .message(CommonErrorCode.SUCCESS.getMessage())
-                                                .result(result)
-                                                .timestamp(Instant.now())
-                                                .path(request.getRequestURI())
-                                                .build());
+                FlagOrderResponse data = orderService.flagOrder(id, body, currentUserId, role, currentUserStoreId);
+                return ResponseEntity.ok(ApiResponse.<FlagOrderResponse>builder()
+                                .code(200)
+                                .message("Order flagged successfully")
+                                .result(data)
+                                .timestamp(Instant.now())
+                                .path(request.getRequestURI())
+                                .build());
         }
+
+
 
         /**
          * GET /v1/orders/statuses — Returns all possible order status values.
          */
         @GetMapping("/statuses")
-        @Operation(summary = "Get order statuses", description = "Returns all possible order status enum values.")
+        @Operation(summary = "Get order statuses", description = "Returns all possible order status enum values. Permission: Public (no JWT required).")
         public ResponseEntity<ApiResponse<List<OrderStatus>>> getOrderStatuses(HttpServletRequest request) {
                 List<OrderStatus> statuses = orderService.getOrderStatuses();
                 return ResponseEntity.ok(ApiResponse.<List<OrderStatus>>builder()
@@ -138,22 +181,52 @@ public class OrderController {
                                 .build());
         }
 
+        /**
+         * GET /v1/orders/enums — Returns all relevant order enums.
+         */
+        @GetMapping("/enums")
+        @Operation(summary = "Get order enums", description = "Returns all relevant enums for order creation/management (Status, PaymentMethod, MomoRequestType, etc.). Permission: Public.")
+        public ResponseEntity<ApiResponse<OrderEnumsResponse>> getOrderEnums(HttpServletRequest request) {
+                OrderEnumsResponse enums = orderService.getOrderEnums();
+                return ResponseEntity.ok(ApiResponse.<OrderEnumsResponse>builder()
+                                .code(200)
+                                .message("Get order enums successfully")
+                                .result(enums)
+                                .timestamp(Instant.now())
+                                .path(request.getRequestURI())
+                                .build());
+        }
+
         @GetMapping("/test")
-        @Operation(summary = "Token test", description = "Returns the authenticated user's UUID — for debugging only.")
-        public String test(HttpServletRequest request) {
+        @Operation(summary = "Test endpoint", description = "Test endpoint to verify authentication and fetch franchise stores data from franchise service")
+        public ResponseEntity<ApiResponse<?>> test(HttpServletRequest request) {
                 String token = jwtService.getTokenFromRequest(request);
-                UUID userId = UUID.fromString(jwtService.getUid(token));
-                return userId.toString();
+                UUID userId = jwtService.getUserId(token);
+                if (userId == null) {
+                        throw new ApiException(CommonErrorCode.UNAUTHORIZED);
+                }
+                
+                // Call FranchiseClient to fetch franchise stores
+                ApiResponse<?> franchiseData = franchiseClient.getAllStores();
+                
+                return ResponseEntity.ok(ApiResponse.builder()
+                                .code(200)
+                                .message("Test: Franchise stores fetched successfully")
+                                .result(franchiseData.getResult())
+                                .timestamp(Instant.now())
+                                .path(request.getRequestURI())
+                                .build());
         }
 
         @PatchMapping("/{id}/cancel")
-        @Operation(summary = "Cancel order", description = "Cancel a pending order. Only the owning customer or an admin may cancel.")
+        @Operation(summary = "Cancel order", description = "Cancel a pending order. Only the owning customer or an admin may cancel. Permission: Authenticated user with ownership/admin checks.")
         public ResponseEntity<ApiResponse<OrderCancelResponse>> cancelOrder(HttpServletRequest request,
                         @PathVariable("id") UUID id) {
                 String token = jwtService.getTokenFromRequest(request);
                 UUID userId = UUID.fromString(jwtService.getUid(token));
+                String role = jwtService.getPrimaryRole(token);
 
-                OrderCancelResponse OrderCancelResponse = orderService.cancelOrder(id, userId);
+                OrderCancelResponse OrderCancelResponse = orderService.cancelOrder(id, userId, role);
                 return ResponseEntity.ok()
                                 .body(ApiResponse.<OrderCancelResponse>builder()
                                                 .code(200)
@@ -166,16 +239,19 @@ public class OrderController {
 
         /**
          * GET /v1/orders/{id}/status — Customer chỉ xem được order của mình;
-         * FRANCHISE_ADMIN và STORE_MANAGER xem được mọi order.
+         * ADMIN và MANAGER xem được mọi order.
          */
         @GetMapping("/{id}/status")
         @Operation(summary = "Get order status", description = "Returns the current status of an order. Customers may only see their own orders.")
-        @PreAuthorize("hasAnyRole('CUSTOMER', 'FRANCHISE_ADMIN', 'STORE_MANAGER')")
+        @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN', 'MANAGER', 'POS')")
         public ResponseEntity<ApiResponse<OrderStatusResponse>> getOrderStatus(
                         HttpServletRequest request,
                         @PathVariable("id") UUID id) {
                 String token = jwtService.getTokenFromRequest(request);
-                UUID userId = UUID.fromString(jwtService.getUid(token));
+                UUID userId = jwtService.getUserId(token);
+                if (userId == null) {
+                        throw new ApiException(CommonErrorCode.UNAUTHORIZED);
+                }
                 String role = jwtService.getPrimaryRole(token);
                 OrderStatusResponse result = orderService.getStatus(id, userId, role);
                 return ResponseEntity.ok(ApiResponse.<OrderStatusResponse>builder()
@@ -192,14 +268,17 @@ public class OrderController {
          * orders only).
          */
         @GetMapping("/me")
-        @Operation(summary = "Get my orders", description = "Paginated order history for the authenticated customer.")
-        @PreAuthorize("hasRole('CUSTOMER')")
+        @Operation(summary = "Get my orders", description = "Paginated order history for the authenticated user. Permission: Any authenticated user.")
+        @PreAuthorize("isAuthenticated()")
         public ResponseEntity<ApiResponse<OrderHistoryPage>> getMyOrders(
                         HttpServletRequest request,
                         @RequestParam(name = "page", defaultValue = "1") int page,
                         @RequestParam(name = "size", defaultValue = "10") int size) {
                 String token = jwtService.getTokenFromRequest(request);
-                UUID customerId = UUID.fromString(jwtService.getUid(token));
+                UUID customerId = jwtService.getUserId(token);
+                if (customerId == null) {
+                        throw new ApiException(CommonErrorCode.UNAUTHORIZED);
+                }
                 OrderHistoryPage result = orderService.getMyOrders(customerId, page, size);
                 return ResponseEntity.ok(ApiResponse.<OrderHistoryPage>builder()
                                 .code(200)
@@ -211,18 +290,18 @@ public class OrderController {
         }
 
         /**
-         * GET /v1/orders — Lịch sử đơn hàng. Chỉ FRANCHISE_ADMIN và STORE_MANAGER được
+         * GET /v1/orders — Lịch sử đơn hàng. Chỉ ADMIN và MANAGER được
          * gọi.
          */
         @GetMapping
-        @Operation(summary = "Get all orders", description = "Paginated, filterable order history for admins. FRANCHISE_ADMIN and STORE_MANAGER only.")
-        @PreAuthorize("hasAnyRole('FRANCHISE_ADMIN', 'STORE_MANAGER')")
+        @Operation(summary = "Get all orders", description = "Paginated, filterable order history for admins. ADMIN and MANAGER only.")
+        @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'POS')")
         public ResponseEntity<ApiResponse<OrderHistoryPage>> getOrderHistory(
                         HttpServletRequest request,
                         @RequestParam(name = "page", defaultValue = "1") int page,
                         @RequestParam(name = "size", defaultValue = "10") int size,
                         @RequestParam(required = false) String status,
-                        @RequestParam(required = false) Long branchId,
+                        @RequestParam(required = false) UUID storeId,
                         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
                         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate) {
                 String token = jwtService.getTokenFromRequest(request);
@@ -230,7 +309,7 @@ public class OrderController {
                 OrderHistoryPage result = orderService.getOrderHistory(
                                 page, size,
                                 Optional.ofNullable(status).filter(s -> s != null && !s.isBlank()),
-                                Optional.ofNullable(branchId),
+                                Optional.ofNullable(storeId),
                                 Optional.ofNullable(fromDate),
                                 Optional.ofNullable(toDate),
                                 role);
@@ -245,13 +324,16 @@ public class OrderController {
 
         @GetMapping("/{id}")
         @Operation(summary = "Get order detail", description = "Full order detail including items, payment, and status. Customers may only view their own orders.")
-        @PreAuthorize("hasAnyRole('CUSTOMER', 'STORE_MANAGER', 'FRANCHISE_ADMIN')")
+        @PreAuthorize("hasAnyRole('CUSTOMER', 'MANAGER', 'ADMIN', 'POS')")
         public ResponseEntity<ApiResponse<OrderDetailResponse>> getOrderDetail(
                         @PathVariable("id") String id,
                         HttpServletRequest request) {
 
                 String token = jwtService.getTokenFromRequest(request);
-                UUID userId = UUID.fromString(jwtService.getUid(token));
+                UUID userId = jwtService.getUserId(token);
+                if (userId == null) {
+                        throw new ApiException(CommonErrorCode.UNAUTHORIZED);
+                }
                 String role = jwtService.getPrimaryRole(token);
 
                 OrderDetailResponse data = orderService.getOrderDetail(id, userId, role);
@@ -267,12 +349,15 @@ public class OrderController {
          * POST /v1/orders/refund — Create refund request
          */
         @PostMapping("/refund")
-        @Operation(summary = "Create refund request", description = "Submit a refund request for a paid order.")
+        @Operation(summary = "Create refund request", description = "Submit a refund request for a paid order. Permission: Authenticated customer/owner flow.")
         public ResponseEntity<ApiResponse<RefundResponse>> createRefund(
                         HttpServletRequest request,
                         @Valid @RequestBody RefundRequest requestDTO) {
                 String token = jwtService.getTokenFromRequest(request);
-                UUID customerId = UUID.fromString(jwtService.getUid(token));
+                UUID customerId = jwtService.getUserId(token);
+                if (customerId == null) {
+                        throw new ApiException(CommonErrorCode.UNAUTHORIZED);
+                }
 
                 RefundResponse result = refundService.createRefundRequest(requestDTO, customerId);
 

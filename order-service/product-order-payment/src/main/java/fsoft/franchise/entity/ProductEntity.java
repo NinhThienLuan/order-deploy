@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
+import lombok.Builder;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -29,11 +30,16 @@ public class ProductEntity extends BaseEntity {
     // @Column(name = "category_id")
     // private UUID categoryId;
 
-    @Column(name = "type", length = 150)
-    private String type;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "type", length = 50)
+    private fsoft.franchise.enums.ProductType type;
 
     @Column(name = "active", nullable = false)
     private Boolean active;
+
+    @Builder.Default
+    @Column(name = "is_recommended", nullable = false, columnDefinition = "boolean default false")
+    private Boolean isRecommended = false;
 
     @Column(name = "delete_at")
     private LocalDateTime deleteAt;

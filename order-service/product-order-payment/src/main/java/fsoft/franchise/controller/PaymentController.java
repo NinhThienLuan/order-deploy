@@ -3,10 +3,11 @@ package fsoft.franchise.controller;
 import fsoft.franchise.common.response.ApiResponse;
 import fsoft.franchise.common.config.VNPayConfig;
 import fsoft.franchise.security.JwtService;
-import fsoft.franchise.dto.payments.CreatePaymentRequest;
+import fsoft.franchise.dto.payments.CreateInboundPaymentRequest;
 import fsoft.franchise.dto.payments.PaymentFilterRequest;
 import fsoft.franchise.dto.payments.PaymentListResponse;
 import fsoft.franchise.dto.payments.PaymentMethodResponse;
+import fsoft.franchise.dto.payments.PaymentRequest;
 import fsoft.franchise.dto.payments.PaymentResponse;
 import fsoft.franchise.dto.payments.PaymentStatusResponse;
 import fsoft.franchise.dto.payments.WebHookResponse;
@@ -30,10 +31,10 @@ import java.util.Map;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/payments")
+    @RequestMapping("/api/v1/payments")
 @RequiredArgsConstructor
 @Slf4j
-@Tag(name = "Payments", description = "Payment methods, history, status, creation, and gateway webhooks")
+@Tag(name = "Payments", description = "Payment methods, history, status, creation, and gateway webhooks. Permission varies by endpoint as documented below.")
 public class PaymentController {
 
         private final PaymentService paymentService;
@@ -52,7 +53,7 @@ public class PaymentController {
          * checkout.
          */
         @GetMapping("/methods")
-        @Operation(summary = "Get payment methods", description = "Returns all enabled payment methods with sub-options. Public — no auth required.")
+        @Operation(summary = "Get payment methods", description = "Returns all enabled payment methods with sub-options. Permission: Public (no JWT required).")
         public ResponseEntity<ApiResponse<List<PaymentMethodResponse>>> getPaymentMethods() {
                 List<PaymentMethodResponse> methods = paymentMethodService.getAllPaymentMethods();
                 return ResponseEntity.ok(
@@ -66,14 +67,16 @@ public class PaymentController {
         /**
          * GET /v1/payments
          * Get payment history for current user (CUSTOMER) or all payments
-         * (FRANCHISE_ADMIN/STORE_MANAGER).
+         * (ADMIN/MANAGER).
          */
         @GetMapping
         @Operation(summary = "Get payment history", description = "Paginated payment history. Customers see only their own; admins see all.")
-        @PreAuthorize("hasAnyRole('CUSTOMER', 'FRANCHISE_ADMIN', 'STORE_MANAGER')")
+        @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN', 'MANAGER', 'POS')")
         public ResponseEntity<ApiResponse<PaymentListResponse>> getPayments(
-                        PaymentFilterRequest filter,
+                        @ModelAttribute PaymentFilterRequest filter,
                         HttpServletRequest request) {
+
+                log.info("Received payment history request with filters: {}", filter);
 
                 String token = jwtService.getTokenFromRequest(request);
                 UUID userId = UUID.fromString(jwtService.getUid(token));
@@ -102,12 +105,12 @@ public class PaymentController {
          * GET /v1/payments/{order_id}/status
          * Check current payment status for an order. Requires auth: CUSTOMER may only
          * view own orders;
-         * FRANCHISE_ADMIN and STORE_MANAGER may view any. 400 Invalid order id, 403
+         * ADMIN and MANAGER may view any. 400 Invalid order id, 403
          * Access denied, 404 Payment not found.
          */
         @GetMapping("/{orderId}/status")
-        @Operation(summary = "Get payment status", description = "Returns the current payment status for a given order. Customers may only view their own orders.")
-        @PreAuthorize("hasAnyRole('CUSTOMER', 'FRANCHISE_ADMIN', 'STORE_MANAGER')")
+        @Operation(summary = "Get payment status", description = "Returns the current payment status for a given order. Users may only view their own orders. Permission: CUSTOMER, ADMIN, MANAGER.")
+        @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN', 'MANAGER', 'POS')")
         public ResponseEntity<ApiResponse<PaymentStatusResponse>> getPaymentStatus(
                         @PathVariable("orderId") String orderId,
                         HttpServletRequest request) {
@@ -134,33 +137,40 @@ public class PaymentController {
                                                 .build());
         }
 
-        @PostMapping("/create")
-        @Operation(summary = "Create payment", description = "Initiate a new payment and return a gateway URL or confirmation.")
-        public ResponseEntity<ApiResponse<PaymentResponse>> createPayment(
-                        @RequestBody @Valid CreatePaymentRequest request,
+        @PostMapping("/{orderId}")
+        @Operation(summary = "Process payment", description = "Initiate payment for an order. Returns a payment URL for gateway-based methods. Permission: Authenticated user.")
+        public ResponseEntity<ApiResponse<PaymentResponse>> processPayment(
+                        @PathVariable("orderId") UUID orderId,
+                        @RequestBody @Valid PaymentRequest request,
                         HttpServletRequest httpRequest) {
+                String token = jwtService.getTokenFromRequest(httpRequest);
+                UUID customerId = UUID.fromString(jwtService.getUid(token));
                 String ip = httpRequest.getRemoteAddr();
                 return ResponseEntity.ok(ApiResponse.<PaymentResponse>builder()
                                 .code(200)
                                 .message("Payment created successfully")
-                                .result(paymentService.createPayment(request, ip))
+                                .result(paymentService.processPayment(orderId, request, customerId, ip))
                                 .build());
         }
 
-        @PatchMapping("/{paymentId}/confirm-cash")
-        @Operation(summary = "Confirm CASH payment", description = "Admin/Manager endpoint to confirm a cash payment.")
-        @PreAuthorize("hasAnyRole('FRANCHISE_ADMIN', 'STORE_MANAGER')")
-        public ResponseEntity<ApiResponse<PaymentResponse>> confirmCashPayment(
-                        @PathVariable("paymentId") UUID paymentId) {
-                return ResponseEntity.ok(ApiResponse.<PaymentResponse>builder()
-                                .code(200)
-                                .message("CASH payment confirmed successfully")
-                                .result(paymentService.confirmCashPayment(paymentId))
-                                .build());
-        }
+//        @PatchMapping("/{paymentId}/confirm-cash")
+//        @Operation(summary = "Confirm CASH payment", description = "Admin/Manager endpoint to confirm a cash payment. Records staff ID from JWT. Permission: ADMIN, MANAGER.")
+//        @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+//        public ResponseEntity<ApiResponse<PaymentResponse>> confirmCashPayment(
+//                        @PathVariable("paymentId") UUID paymentId,
+//                        HttpServletRequest httpRequest) {
+//                // Bug #5: Extract staff ID from JWT to track who confirmed the cash payment
+//                String token = jwtService.getTokenFromRequest(httpRequest);
+//                UUID staffId = UUID.fromString(jwtService.getUid(token));
+//                return ResponseEntity.ok(ApiResponse.<PaymentResponse>builder()
+//                                .code(200)
+//                                .message("CASH payment confirmed successfully")
+//                                .result(paymentService.confirmCashPayment(paymentId, staffId))
+//                                .build());
+//        }
 
         @PostMapping("/webhook")
-        @Operation(summary = "VNPay webhook", description = "Receives VNPay payment notification. Verifies signature and updates payment status.")
+        @Operation(summary = "VNPay webhook", description = "Receives VNPay payment notification. Verifies signature and updates payment status. Permission: Public webhook endpoint (no JWT required, signature-verified).")
         public ResponseEntity<ApiResponse<WebHookResponse>> handleWebhook(
                         @RequestBody Map<String, String> params) {
 
@@ -182,6 +192,7 @@ public class PaymentController {
         }
 
         @GetMapping("/vnpay-return")
+        @Operation(summary = "VNPay return", description = "Gateway return endpoint after VNPay payment flow; redirects to frontend with payment result. Permission: Public return endpoint (no JWT required).")
         public ResponseEntity<Void> handleReturn(
                         @RequestParam Map<String, String> params) {
 

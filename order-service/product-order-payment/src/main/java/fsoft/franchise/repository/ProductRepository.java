@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
+import java.util.List;
 import java.util.UUID;
 
 @Repository
@@ -23,4 +24,10 @@ public interface ProductRepository extends JpaRepository<ProductEntity, UUID>,
         Page<ProductEntity> findByActiveTrueAndDeleteAtIsNull(Pageable pageable);
 
         Page<ProductEntity> findByActiveFalseAndDeleteAtIsNull(Pageable pageable);
+
+        List<ProductEntity> findByIsRecommendedTrueAndActiveTrueAndDeleteAtIsNull();
+
+        boolean existsByNameIgnoreCaseAndDeleteAtIsNull(String name);
+
+        boolean existsByNameIgnoreCaseAndIdNotAndDeleteAtIsNull(String name, java.util.UUID id);
 }

@@ -19,10 +19,11 @@ public class ProductDetailResponse {
     private UUID id;
     private String name;
     private String description;
-    private String type;
+    private fsoft.franchise.enums.ProductType type;
     private UUID categoryId;
     private String categoryName;
     private Boolean active;
+    private Boolean isRecommended;
     private List<ProductVariantResponse> variants;
     private List<ImageInfo> images;
 

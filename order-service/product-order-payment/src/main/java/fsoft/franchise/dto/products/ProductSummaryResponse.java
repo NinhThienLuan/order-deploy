@@ -19,7 +19,7 @@ public class ProductSummaryResponse {
     private UUID id;
     private String name;
     private String description;
-    private String type;
+    private fsoft.franchise.enums.ProductType type;
     private UUID categoryId;
     private String categoryName;
     /** URL of the primary image (null if none). */
@@ -27,4 +27,5 @@ public class ProductSummaryResponse {
     /** Lowest active-variant price; null if no active variants exist. */
     private BigDecimal basePrice;
     private Boolean active;
+    private Boolean isRecommended;
 }

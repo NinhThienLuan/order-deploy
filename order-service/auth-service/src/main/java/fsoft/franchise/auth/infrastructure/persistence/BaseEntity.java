@@ -1,16 +1,11 @@
 package fsoft.franchise.auth.infrastructure.persistence;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
-import jakarta.persistence.MappedSuperclass;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import jakarta.persistence.*;
+import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.springframework.data.domain.Persistable;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -21,9 +16,8 @@ import java.util.UUID;
 @SuperBuilder
 @AllArgsConstructor
 @NoArgsConstructor
-public class BaseEntity {
+public class BaseEntity implements Persistable<UUID> {
     @Id
-    @GeneratedValue
     private UUID id;
 
     @CreationTimestamp
@@ -33,4 +27,25 @@ public class BaseEntity {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+    @Transient
+    @Builder.Default
+    private boolean isNew = true; // Mặc định là mới
+
+    @Override
+    public boolean isNew() {
+        return isNew || id == null;
+    }
+
+    @PrePersist
+    protected void prePersist() {
+        if (id == null) {
+            id = UUID.randomUUID(); // auto-generate only when no ID is set manually
+        }
+    }
+
+    @PostPersist
+    @PostLoad
+    protected void setNotNew() {
+        this.isNew = false;
+    }
 }

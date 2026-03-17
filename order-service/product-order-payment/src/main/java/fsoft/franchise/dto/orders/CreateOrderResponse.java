@@ -9,10 +9,13 @@ import java.util.UUID;
 
 public record CreateOrderResponse(
         UUID orderId,
+        String orderNumber,
         OrderStatus status,
         LocalDateTime orderTime,
         BigDecimal totalAmount,
-        List<OrderItemResponse> items) {
+        List<OrderItemResponse> items,
+        String note,
+        String deliveryAddress) {
     public record OrderItemResponse(
             UUID productId,
             String productName,

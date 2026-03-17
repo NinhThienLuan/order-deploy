@@ -1,0 +1,378 @@
+{
+  "info": {
+    "_postman_id": "a2f1dd3c-4d13-4f3a-a5e8-8c4d1747a6f2",
+    "name": "Payment Flow - CASH VNPay MoMo",
+    "description": "Test payment flow for CASH, VNPay and switching to MoMo. Import this collection, set variables, then run requests in order.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8081", "type": "string" },
+    { "key": "accessToken", "value": "", "type": "string" },
+    { "key": "orderId", "value": "", "type": "string" },
+    { "key": "amount", "value": "100000", "type": "string" },
+    { "key": "cashPaymentId", "value": "", "type": "string" },
+    { "key": "vnpayPaymentId", "value": "", "type": "string" },
+    { "key": "momoPaymentId", "value": "", "type": "string" },
+    { "key": "vnpTxnRef", "value": "", "type": "string" },
+    { "key": "momoRequestId", "value": "", "type": "string" },
+    { "key": "momoOrderCode", "value": "", "type": "string" },
+    { "key": "momoTransId", "value": "", "type": "string" },
+    { "key": "momoPartnerCode", "value": "MOMOLRJZ20181206", "type": "string" },
+    { "key": "momoAccessKey", "value": "mTCKt9W3eU1m39TW", "type": "string" },
+    { "key": "momoSecretKey", "value": "SetA5RDnLHvt51AULf51DyauxUo3kDU6", "type": "string" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      { "key": "token", "value": "{{accessToken}}", "type": "string" }
+    ]
+  },
+  "item": [
+    {
+      "name": "0. Quick Check",
+      "item": [
+        {
+          "name": "Get Payment Methods",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/payments/methods",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "payments", "methods"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "A. CASH Flow",
+      "item": [
+        {
+          "name": "Create CASH Payment",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const tx = 'CASH-' + Date.now();",
+                  "pm.collectionVariables.set('cashTxnRef', tx);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Create CASH payment success', function () {",
+                  "  pm.expect(pm.response.code).to.eql(200);",
+                  "});",
+                  "const body = pm.response.json();",
+                  "const result = body.result || {};",
+                  "pm.collectionVariables.set('cashPaymentId', result.paymentId || '');",
+                  "pm.test('Method is CASH', function () {",
+                  "  pm.expect(result.paymentMethod).to.eql('CASH');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderId\": \"{{orderId}}\",\n  \"paymentMethod\": \"CASH\",\n  \"amount\": {{amount}},\n  \"transactionId\": \"{{cashTxnRef}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/payments/create",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "payments", "create"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Confirm CASH Payment (Admin/Manager role)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Confirm cash success', function () {",
+                  "  pm.expect(pm.response.code).to.eql(200);",
+                  "});",
+                  "const body = pm.response.json();",
+                  "const result = body.result || {};",
+                  "pm.test('Status becomes PAID', function () {",
+                  "  pm.expect(result.paymentStatus).to.eql('PAID');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/payments/{{cashPaymentId}}/confirm-cash",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "payments", "{{cashPaymentId}}", "confirm-cash"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "B. VNPay -> MoMo Switch (Recommended scenario)",
+      "item": [
+        {
+          "name": "Create VNPay Payment",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const tx = 'VNP-' + Date.now();",
+                  "pm.collectionVariables.set('vnpTxnRef', tx);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Create VNPay payment success', function () {",
+                  "  pm.expect(pm.response.code).to.eql(200);",
+                  "});",
+                  "const body = pm.response.json();",
+                  "const result = body.result || {};",
+                  "pm.collectionVariables.set('vnpayPaymentId', result.paymentId || '');",
+                  "pm.test('Method is VNPAY', function () {",
+                  "  pm.expect(result.paymentMethod).to.eql('VNPAY');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderId\": \"{{orderId}}\",\n  \"paymentMethod\": \"VNPAY\",\n  \"amount\": {{amount}},\n  \"transactionId\": \"{{vnpTxnRef}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/payments/create",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "payments", "create"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Simulate VNPay Webhook FAILED (allow switching method)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Webhook accepted', function () {",
+                  "  pm.expect(pm.response.code).to.eql(200);",
+                  "});",
+                  "const body = pm.response.json();",
+                  "const status = (body.result || {}).status;",
+                  "pm.test('Payment becomes FAILED', function () {",
+                  "  pm.expect(status).to.eql('FAILED');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vnp_TxnRef\": \"{{vnpTxnRef}}\",\n  \"vnp_ResponseCode\": \"24\",\n  \"vnp_TransactionNo\": \"SIM-VNP-FAILED-001\",\n  \"vnp_BankCode\": \"NCB\",\n  \"vnp_Amount\": \"10000000\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/payments/webhook",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "payments", "webhook"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create MoMo Payment on same Order (after VNPay FAILED)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Create MoMo payment success', function () {",
+                  "  pm.expect(pm.response.code).to.eql(200);",
+                  "});",
+                  "const body = pm.response.json();",
+                  "const result = body.result || {};",
+                  "pm.collectionVariables.set('momoPaymentId', result.paymentId || '');",
+                  "pm.test('Method is MOMO', function () {",
+                  "  pm.expect(result.paymentMethod).to.eql('MOMO');",
+                  "});",
+                  "pm.test('PaymentId changed (new row, not update old)', function () {",
+                  "  pm.expect(result.paymentId).to.not.eql(pm.collectionVariables.get('vnpayPaymentId'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderId\": \"{{orderId}}\",\n  \"paymentMethod\": \"MOMO\",\n  \"amount\": {{amount}},\n  \"transactionId\": \"MOMO-TX-{{vnpTxnRef}}\",\n  \"momoRequestType\": \"captureWallet\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/payments/create",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "payments", "create"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Simulate MoMo Callback SUCCESS",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const accessKey = pm.collectionVariables.get('momoAccessKey');",
+                  "const secretKey = pm.collectionVariables.get('momoSecretKey');",
+                  "const partnerCode = pm.collectionVariables.get('momoPartnerCode');",
+                  "const amount = pm.collectionVariables.get('amount');",
+                  "const orderId = pm.collectionVariables.get('orderId');",
+                  "const requestId = 'REQ-' + Date.now();",
+                  "const momoOrderCode = 'MOMO-' + orderId + '-' + Date.now();",
+                  "const transId = String(Date.now());",
+                  "const responseTime = String(Date.now());",
+                  "const orderInfo = 'Payment for order ' + orderId;",
+                  "const message = 'Successful.';",
+                  "const orderType = 'momo_wallet';",
+                  "const payType = 'qr';",
+                  "const resultCode = '0';",
+                  "const extraData = CryptoJS.enc.Base64.stringify(CryptoJS.enc.Utf8.parse(JSON.stringify({ orderId: orderId })));",
+                  "",
+                  "const raw = 'accessKey=' + accessKey",
+                  "  + '&amount=' + amount",
+                  "  + '&extraData=' + extraData",
+                  "  + '&message=' + message",
+                  "  + '&orderId=' + momoOrderCode",
+                  "  + '&orderInfo=' + orderInfo",
+                  "  + '&orderType=' + orderType",
+                  "  + '&partnerCode=' + partnerCode",
+                  "  + '&payType=' + payType",
+                  "  + '&requestId=' + requestId",
+                  "  + '&responseTime=' + responseTime",
+                  "  + '&resultCode=' + resultCode",
+                  "  + '&transId=' + transId;",
+                  "",
+                  "const signature = CryptoJS.HmacSHA256(raw, secretKey).toString(CryptoJS.enc.Hex);",
+                  "",
+                  "const payload = {",
+                  "  partnerCode: partnerCode,",
+                  "  accessKey: accessKey,",
+                  "  requestId: requestId,",
+                  "  amount: amount,",
+                  "  orderId: momoOrderCode,",
+                  "  orderInfo: orderInfo,",
+                  "  orderType: orderType,",
+                  "  transId: transId,",
+                  "  resultCode: resultCode,",
+                  "  message: message,",
+                  "  payType: payType,",
+                  "  responseTime: responseTime,",
+                  "  extraData: extraData,",
+                  "  signature: signature",
+                  "};",
+                  "",
+                  "pm.collectionVariables.set('momoRequestId', requestId);",
+                  "pm.collectionVariables.set('momoOrderCode', momoOrderCode);",
+                  "pm.collectionVariables.set('momoTransId', transId);",
+                  "pm.variables.set('momoPayload', JSON.stringify(payload));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('MoMo callback accepted', function () {",
+                  "  pm.expect(pm.response.code).to.eql(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{{momoPayload}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/payments/momo/callback",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "payments", "momo", "callback"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "C. Verify latest Payment Status",
+      "item": [
+        {
+          "name": "Get Payment Status by Order",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/payments/{{orderId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "payments", "{{orderId}}", "status"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

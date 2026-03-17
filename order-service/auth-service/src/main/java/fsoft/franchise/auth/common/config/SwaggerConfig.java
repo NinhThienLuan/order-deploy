@@ -17,7 +17,8 @@ import org.springframework.context.annotation.Configuration;
                 description = "API Documentation for E-Commerce App"
         ),
         servers = {
-                @Server(description = "Local Environment", url = "http://localhost:8080")
+                @Server(description = "Direct Auth Service", url = "http://localhost:8082"),
+                @Server(description = "Gateway Environment", url = "http://localhost:8080")
         },
         // Áp dụng bảo mật cho toàn bộ API
         security = {

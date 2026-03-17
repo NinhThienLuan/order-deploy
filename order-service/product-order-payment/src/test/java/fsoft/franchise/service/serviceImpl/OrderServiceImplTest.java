@@ -785,13 +785,13 @@
 //        }
 //
 //        @Test
-//        @DisplayName("Should return status for FRANCHISE_ADMIN")
+//        @DisplayName("Should return status for ADMIN")
 //        void shouldReturnStatusForAdmin() {
 //            // Given
 //            when(orderRepository.findByIdWithCustomer(orderId)).thenReturn(Optional.of(order));
 //
 //            // When
-//            OrderStatusResponse result = orderService.getStatus(orderId, strangerId, "FRANCHISE_ADMIN");
+//            OrderStatusResponse result = orderService.getStatus(orderId, strangerId, "ADMIN");
 //
 //            // Then
 //            assertNotNull(result);
@@ -823,13 +823,13 @@
 //        }
 //
 //        @Test
-//        @DisplayName("Should return status for STORE_MANAGER")
+//        @DisplayName("Should return status for MANAGER")
 //        void shouldReturnStatusForStoreManager() {
 //            // Given
 //            when(orderRepository.findByIdWithCustomer(orderId)).thenReturn(Optional.of(order));
 //
 //            // When
-//            OrderStatusResponse result = orderService.getStatus(orderId, strangerId, "STORE_MANAGER");
+//            OrderStatusResponse result = orderService.getStatus(orderId, strangerId, "MANAGER");
 //
 //            // Then
 //            assertNotNull(result);
@@ -862,7 +862,7 @@
 //    class GetOrderHistoryTests {
 //
 //        @Test
-//        @DisplayName("Should return order history for FRANCHISE_ADMIN")
+//        @DisplayName("Should return order history for ADMIN")
 //        void shouldReturnHistoryForAdmin() {
 //            // Given
 //            OrderEntity order1 = OrderEntity.builder()
@@ -877,7 +877,7 @@
 //            // When
 //            OrderHistoryPage result = orderService.getOrderHistory(
 //                    1, 10, Optional.empty(), Optional.empty(),
-//                    Optional.empty(), Optional.empty(), "FRANCHISE_ADMIN");
+//                    Optional.empty(), Optional.empty(), "ADMIN");
 //
 //            // Then
 //            assertNotNull(result);
@@ -890,7 +890,7 @@
 //            // When & Then
 //            assertThrows(ApiException.class,
 //                    () -> orderService.getOrderHistory(0, 10, Optional.empty(),
-//                            Optional.empty(), Optional.empty(), Optional.empty(), "FRANCHISE_ADMIN"));
+//                            Optional.empty(), Optional.empty(), Optional.empty(), "ADMIN"));
 //        }
 //
 //        @Test
@@ -899,7 +899,7 @@
 //            // When & Then
 //            ApiException exception = assertThrows(ApiException.class,
 //                    () -> orderService.getOrderHistory(1, 10, Optional.of("INVALID"),
-//                            Optional.empty(), Optional.empty(), Optional.empty(), "FRANCHISE_ADMIN"));
+//                            Optional.empty(), Optional.empty(), Optional.empty(), "ADMIN"));
 //            assertEquals(OrderErrorCode.INVALID_ORDER_STATUS, exception.getErrorCode());
 //        }
 //
@@ -913,7 +913,7 @@
 //            // When
 //            OrderHistoryPage result = orderService.getOrderHistory(
 //                    1, 10, Optional.empty(), Optional.empty(),
-//                    Optional.empty(), Optional.empty(), "FRANCHISE_ADMIN");
+//                    Optional.empty(), Optional.empty(), "ADMIN");
 //
 //            // Then
 //            assertNotNull(result);
@@ -936,7 +936,7 @@
 //            // When
 //            OrderHistoryPage result = orderService.getOrderHistory(
 //                    1, 10, Optional.of("PAID"), Optional.empty(),
-//                    Optional.empty(), Optional.empty(), "FRANCHISE_ADMIN");
+//                    Optional.empty(), Optional.empty(), "ADMIN");
 //
 //            // Then
 //            assertNotNull(result);
@@ -961,7 +961,7 @@
 //                    1, 10, Optional.empty(),
 //                    Optional.empty(),
 //                    Optional.empty(),
-//                    Optional.empty(), "FRANCHISE_ADMIN");
+//                    Optional.empty(), "ADMIN");
 //
 //            // Then
 //            assertNotNull(result);
@@ -975,7 +975,7 @@
 //            ApiException exception = assertThrows(ApiException.class,
 //                    () -> orderService.getOrderHistory(
 //                            1, 200, Optional.empty(), Optional.empty(),
-//                            Optional.empty(), Optional.empty(), "FRANCHISE_ADMIN"));
+//                            Optional.empty(), Optional.empty(), "ADMIN"));
 //            assertEquals(CommonErrorCode.BAD_REQUEST, exception.getErrorCode());
 //        }
 //
@@ -1002,7 +1002,7 @@
 //            // When
 //            OrderHistoryPage result = orderService.getOrderHistory(
 //                    1, 10, Optional.empty(), Optional.empty(),
-//                    Optional.empty(), Optional.empty(), "FRANCHISE_ADMIN");
+//                    Optional.empty(), Optional.empty(), "ADMIN");
 //
 //            // Then
 //            assertNotNull(result);
@@ -1188,7 +1188,7 @@
 //            lenient().when(orderRepository.findByIdWithPayments(orderId)).thenReturn(Optional.of(order));
 //
 //            // When
-//            OrderDetailResponse result = orderService.getOrderDetail(orderId.toString(), strangerId, "FRANCHISE_ADMIN");
+//            OrderDetailResponse result = orderService.getOrderDetail(orderId.toString(), strangerId, "ADMIN");
 //
 //            // Then
 //            assertNotNull(result);

@@ -36,6 +36,9 @@ public class CategoryEntity extends BaseEntity {
     @OneToMany(mappedBy = "parent", fetch = FetchType.LAZY)
     private List<CategoryEntity> children;
 
+    @OneToMany(mappedBy = "category", fetch = FetchType.LAZY)
+    private java.util.List<ProductEntity> products;
+
     @Column(name = "active", nullable = false)
     private Boolean active;
 

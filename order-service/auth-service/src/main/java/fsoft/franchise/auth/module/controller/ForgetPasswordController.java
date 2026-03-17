@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.Instant;
 
 @RestController
-@RequestMapping("/api/forget-password")
+@RequestMapping("/api/v1/forget-password")
 @RequiredArgsConstructor
 public class ForgetPasswordController {
     private final ForgetPasswordFlowService forgetPasswordFlowService;

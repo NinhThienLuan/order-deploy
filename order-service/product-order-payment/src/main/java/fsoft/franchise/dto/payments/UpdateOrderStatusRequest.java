@@ -11,7 +11,7 @@ import jakarta.validation.constraints.NotNull;
  * </p>
  * 
  * <pre>
- * PATCH /v1/orders/{id}/status
+ * PUT /v1/orders/{order_id}/status
  * {
  *   "status": "PREPARING"
  * }

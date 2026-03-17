@@ -25,41 +25,41 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/api/v1/admin")
 @RequiredArgsConstructor
-@Tag(name = "Admin — Transactions", description = "Internal reconciliation and reporting APIs")
+@Tag(name = "Admin — Transactions", description = "Internal reconciliation and reporting APIs. Permission: ADMIN, MANAGER only.")
 public class AdminController {
 
-    private final PaymentService paymentService;
+        private final PaymentService paymentService;
 
-    /**
-     * GET /v1/admin/transactions
-     * List all payment transactions for reconciliation. Request params giống GET /v1/orders.
-     * Permission: FRANCHISE_ADMIN or STORE_MANAGER only.
-     */
-    @GetMapping("/transactions")
-    @Operation(summary = "List all transactions", description = "Paginated, filterable payment transaction list for reconciliation. FRANCHISE_ADMIN and STORE_MANAGER only.")
-    @PreAuthorize("hasAnyRole('FRANCHISE_ADMIN', 'STORE_MANAGER')")
-    public ResponseEntity<ApiResponse<AdminTransactionListResponse>> getTransactions(
-            HttpServletRequest request,
-            @RequestParam(name = "page", defaultValue = "1") int page,
-            @RequestParam(name = "size", defaultValue = "10") int size,
-            @RequestParam(required = false) String status,
-            @RequestParam(required = false) String paymentMethod,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate) {
-        AdminTransactionListResponse result = paymentService.getAdminTransactions(
-                page, size,
-                Optional.ofNullable(status).filter(s -> s != null && !s.isBlank()),
-                Optional.ofNullable(paymentMethod).filter(s -> s != null && !s.isBlank()),
-                Optional.ofNullable(fromDate),
-                Optional.ofNullable(toDate));
-        return ResponseEntity.ok(
-                ApiResponse.<AdminTransactionListResponse>builder()
-                        .code(200)
-                        .message("Get transaction list successfully")
-                        .result(result)
-                        .timestamp(Instant.now())
-                        .path(request.getRequestURI())
-                        .build()
-        );
-    }
+        /**
+         * GET /v1/admin/transactions
+         * List all payment transactions for reconciliation. Request params giống GET
+         * /v1/orders.
+         * Permission: ADMIN or MANAGER only.
+         */
+        @GetMapping("/transactions")
+        @Operation(summary = "List all transactions", description = "Paginated, filterable payment transaction list for reconciliation. Permission: ADMIN, MANAGER.")
+        @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+        public ResponseEntity<ApiResponse<AdminTransactionListResponse>> getTransactions(
+                        HttpServletRequest request,
+                        @RequestParam(name = "page", defaultValue = "1") int page,
+                        @RequestParam(name = "size", defaultValue = "10") int size,
+                        @RequestParam(required = false) String status,
+                        @RequestParam(required = false) String paymentMethod,
+                        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+                        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate) {
+                AdminTransactionListResponse result = paymentService.getAdminTransactions(
+                                page, size,
+                                Optional.ofNullable(status).filter(s -> s != null && !s.isBlank()),
+                                Optional.ofNullable(paymentMethod).filter(s -> s != null && !s.isBlank()),
+                                Optional.ofNullable(fromDate),
+                                Optional.ofNullable(toDate));
+                return ResponseEntity.ok(
+                                ApiResponse.<AdminTransactionListResponse>builder()
+                                                .code(200)
+                                                .message("Get transaction list successfully")
+                                                .result(result)
+                                                .timestamp(Instant.now())
+                                                .path(request.getRequestURI())
+                                                .build());
+        }
 }

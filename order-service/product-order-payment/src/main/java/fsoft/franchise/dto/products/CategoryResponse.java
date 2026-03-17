@@ -19,4 +19,5 @@ public class CategoryResponse {
     private String name;
     private String description;
     private UUID parentId;
+    private Boolean active;
 }

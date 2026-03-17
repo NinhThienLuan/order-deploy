@@ -2,9 +2,14 @@ package fsoft.franchise.controller;
 
 import fsoft.franchise.common.response.ApiResponse;
 import fsoft.franchise.security.JwtService;
+import fsoft.franchise.dto.payments.OrderRefundResponse;
 import fsoft.franchise.dto.payments.UpdateOrderStatusRequest;
+import fsoft.franchise.dto.payments.UpdateOrderStatusResponse;
 import fsoft.franchise.dto.payments.OrderTrackingTimelineDTO;
 import fsoft.franchise.service.OrderTrackingService;
+import fsoft.franchise.service.RefundService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -21,9 +26,11 @@ import java.util.UUID;
  * <ol>
  * <li><b>GET /v1/orders/{id}/tracking</b> — Khách hàng xem timeline tracking
  * (giống hình tracking DHL/Shopee)</li>
- * <li><b>PATCH /v1/orders/{id}/status</b> — Admin/Store Manager cập nhật trạng
- * thái
- * → tự động push real-time qua WebSocket</li>
+ * <li><b>PUT /v1/orders/{order_id}/status</b> —
+ * ADMIN/MANAGER/POS cập nhật trạng
+ * thái (CUSTOMER không dùng được) → tự động push real-time qua WebSocket</li>
+ * <li><b>POST /v1/orders/{order_id}/refund</b> — ADMIN/MANAGER
+ * thực hiện hoàn tiền đơn hàng</li>
  * </ol>
  *
  * <pre>
@@ -39,81 +46,116 @@ import java.util.UUID;
  * </pre>
  */
 @RestController
-@RequestMapping("/v1/orders")
+@RequestMapping("/api/v1/orders")
 @RequiredArgsConstructor
+@Tag(name = "order-tracking-controller", description = "Order tracking timeline and manual status/refund actions. Permission varies by endpoint (CUSTOMER/ADMIN/MANAGER as documented per API).")
 public class OrderTrackingController {
 
-    private final OrderTrackingService orderTrackingService;
-    private final JwtService jwtService;
+        private final OrderTrackingService orderTrackingService;
+        private final RefundService refundService;
+        private final JwtService jwtService;
 
-    // ======================== CUSTOMER API ========================
+        // ======================== CUSTOMER API ========================
 
-    /**
-     * GET /v1/orders/{id}/tracking — Timeline tracking cho khách hàng.
-     *
-     * <p>
-     * Trả về danh sách các bước + bước nào ✅ completed, ⏳ current, ○ chưa tới.
-     * </p>
-     * <p>
-     * Customer chỉ xem được đơn của mình; Admin/Store Manager xem được mọi đơn.
-     * </p>
-     */
-    @GetMapping("/{id}/tracking")
-    @PreAuthorize("hasAnyRole('CUSTOMER', 'FRANCHISE_ADMIN', 'STORE_MANAGER')")
-    public ResponseEntity<ApiResponse<OrderTrackingTimelineDTO>> getTrackingTimeline(
-            HttpServletRequest request,
-            @PathVariable("id") UUID id) {
+        /**
+         * GET /v1/orders/{id}/tracking — Timeline tracking cho khách hàng.
+         *
+         * <p>
+         * Trả về danh sách các bước + bước nào ✅ completed, ⏳ current, ○ chưa tới.
+         * </p>
+         * <p>
+         * Customer chỉ xem được đơn của mình; Admin/Store Manager xem được mọi đơn.
+         * </p>
+         */
+        @GetMapping("/{id}/tracking")
+        @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN', 'MANAGER', 'POS')")
+        public ResponseEntity<ApiResponse<OrderTrackingTimelineDTO>> getTrackingTimeline(
+                        HttpServletRequest request,
+                        @PathVariable("id") UUID id) {
 
-        String token = jwtService.getTokenFromRequest(request);
-        UUID userId = UUID.fromString(jwtService.getUid(token));
-        String role = jwtService.getPrimaryRole(token);
+                String token = jwtService.getTokenFromRequest(request);
+                UUID userId = UUID.fromString(jwtService.getUid(token));
+                String role = jwtService.getPrimaryRole(token);
 
-        OrderTrackingTimelineDTO timeline = orderTrackingService.getTrackingTimeline(id, userId, role);
+                OrderTrackingTimelineDTO timeline = orderTrackingService.getTrackingTimeline(id, userId, role);
 
-        return ResponseEntity.ok(
-                ApiResponse.<OrderTrackingTimelineDTO>builder()
-                        .code(200)
-                        .message("Get order tracking timeline successfully")
-                        .result(timeline)
-                        .timestamp(Instant.now())
-                        .path(request.getRequestURI())
-                        .build());
-    }
+                return ResponseEntity.ok(
+                                ApiResponse.<OrderTrackingTimelineDTO>builder()
+                                                .code(200)
+                                                .message("Get order tracking timeline successfully")
+                                                .result(timeline)
+                                                .timestamp(Instant.now())
+                                                .path(request.getRequestURI())
+                                                .build());
+        }
 
-    // ======================== ADMIN API ========================
+        // ======================== ADMIN API ========================
 
-    /**
-     * PATCH /v1/orders/{id}/status — Admin cập nhật trạng thái đơn hàng.
-     *
-     * <p>
-     * Khi gọi API này → server sẽ:
-     * </p>
-     * <ol>
-     * <li>Validate transition (VD: PAID → PREPARING ✓, PAID → COMPLETED ✗)</li>
-     * <li>Update DB</li>
-     * <li>Lưu vào bảng history (để timeline có data)</li>
-     * <li>Push WebSocket message → khách hàng thấy ngay</li>
-     * </ol>
-     */
-    @PatchMapping("/{id}/status")
-    @PreAuthorize("hasAnyRole('FRANCHISE_ADMIN', 'STORE_MANAGER')")
-    public ResponseEntity<ApiResponse<String>> updateOrderStatus(
-            HttpServletRequest request,
-            @PathVariable("id") UUID id,
-            @Valid @RequestBody UpdateOrderStatusRequest body) {
+        /**
+         * PUT /v1/orders/{order_id}/status — ADMIN, MANAGER hoặc POS
+         * cập nhật trạng thái đơn hàng.
+         * CUSTOMER không được dùng API này.
+         *
+         * <p>
+         * Khi gọi API này → server sẽ:
+         * </p>
+         * <ol>
+         * <li>Validate transition theo OrderStatus (VD: PAID → PREPARING ✓, PAID →
+         * COMPLETED ✗)</li>
+         * <li>Update DB</li>
+         * <li>Lưu vào bảng history (để timeline có data)</li>
+         * <li>Push WebSocket message → khách hàng thấy ngay</li>
+         * </ol>
+         */
+        @PutMapping("/{order_id}/status")
+        @Operation(summary = "Update order status", description = "Update order status and push realtime tracking update. Permission: ADMIN, MANAGER.")
+        @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'POS')")
+        public ResponseEntity<ApiResponse<UpdateOrderStatusResponse>> updateOrderStatus(
+                        HttpServletRequest request,
+                        @PathVariable("order_id") UUID orderId,
+                        @Valid @RequestBody UpdateOrderStatusRequest body) {
 
-        String token = jwtService.getTokenFromRequest(request);
-        UUID updatedBy = UUID.fromString(jwtService.getUid(token));
+                String token = jwtService.getTokenFromRequest(request);
+                UUID updatedBy = UUID.fromString(jwtService.getUid(token));
 
-        orderTrackingService.updateOrderStatus(id, body.status(), updatedBy);
+                UpdateOrderStatusResponse result = orderTrackingService.updateOrderStatus(orderId, body.status(),
+                                updatedBy);
 
-        return ResponseEntity.ok(
-                ApiResponse.<String>builder()
-                        .code(200)
-                        .message("Order status updated successfully")
-                        .result("Order " + id + " status changed to " + body.status())
-                        .timestamp(Instant.now())
-                        .path(request.getRequestURI())
-                        .build());
-    }
+                return ResponseEntity.ok(
+                                ApiResponse.<UpdateOrderStatusResponse>builder()
+                                                .code(200)
+                                                .message("Order status updated successfully")
+                                                .result(result)
+                                                .timestamp(Instant.now())
+                                                .path(request.getRequestURI())
+                                                .build());
+        }
+
+        /**
+         * POST /v1/orders/{order_id}/refund — ADMIN hoặc MANAGER thực
+         * hiện hoàn tiền đơn hàng.
+         * Đơn phải ở trạng thái PAID, COMPLETED hoặc READY; không được đã refund trước
+         * đó.
+         */
+        @PostMapping("/{order_id}/refund")
+        @Operation(summary = "Refund order", description = "Trigger order refund flow for eligible orders. Permission: ADMIN, MANAGER.")
+        @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+        public ResponseEntity<ApiResponse<OrderRefundResponse>> refundOrder(
+                        HttpServletRequest request,
+                        @PathVariable("order_id") UUID orderId) {
+
+                String token = jwtService.getTokenFromRequest(request);
+                UUID performedBy = UUID.fromString(jwtService.getUid(token));
+
+                OrderRefundResponse result = refundService.processOrderRefund(orderId, performedBy);
+
+                return ResponseEntity.ok(
+                                ApiResponse.<OrderRefundResponse>builder()
+                                                .code(200)
+                                                .message("Order refunded successfully")
+                                                .result(result)
+                                                .timestamp(Instant.now())
+                                                .path(request.getRequestURI())
+                                                .build());
+        }
 }

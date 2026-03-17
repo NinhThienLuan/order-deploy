@@ -17,16 +17,19 @@ import java.util.UUID;
 @AllArgsConstructor
 public class OrderDetailResponse {
     private UUID orderId;
+    private UUID storeId;
     private String orderNumber;
     private OrderStatus status;
     private String orderType;
     private LocalDateTime orderTime;
+    private UUID customerId;
     private CustomerInfo customer;
     private List<OrderItemInfo> items;
     private PricingInfo pricing;
-    private PaymentInfo payment;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private String note;
+    private String deliveryAddress;
 
     @Data
     @Builder
@@ -36,6 +39,8 @@ public class OrderDetailResponse {
         private String customerId;
         private String customerName;
         private String contactNumber;
+        private String recipientName;
+        private String recipientPhone;
         private String deliveryAddress;
     }
 
@@ -48,6 +53,7 @@ public class OrderDetailResponse {
         private String productName;
         private int quantity;
         private String variantName;
+        private UUID variantId;
         private BigDecimal unitPrice;
         private BigDecimal subtotal;
     }
@@ -61,17 +67,4 @@ public class OrderDetailResponse {
         private BigDecimal discount;
         private BigDecimal totalAmount;
     }
-
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class PaymentInfo {
-        private String paymentMethod;
-        private BigDecimal amountPaid;
-        private String paymentStatus;
-        private LocalDateTime paymentDate;
-        private String paymentUrl;
-    }
 }
-

@@ -1,28 +1,28 @@
 package fsoft.franchise.serviceImpl;
 
+import fsoft.franchise.enums.MomoRequestType;
+import fsoft.franchise.enums.PaymentMethod;
+
+import fsoft.franchise.client.FranchiseStoreClient;
+import fsoft.franchise.client.InventoryClient;
 import fsoft.franchise.common.exception.ApiException;
+import fsoft.franchise.dto.integration.FranchiseStoreResponse;
+import fsoft.franchise.dto.integration.StoreInventoryResponse;
 import fsoft.franchise.dto.orders.*;
-import fsoft.franchise.dto.payments.PaymentResponse;
 import fsoft.franchise.exception.CommonErrorCode;
 import fsoft.franchise.exception.OrderErrorCode;
-import fsoft.franchise.exception.PaymentErrorCode;
-import fsoft.franchise.dto.payments.PaymentRequest;
 import fsoft.franchise.entity.*;
 import fsoft.franchise.enums.OrderStatus;
-import fsoft.franchise.enums.PaymentStatus;
-import fsoft.franchise.enums.MomoRequestType;
-import fsoft.franchise.entity.external.AccountEntity;
-import fsoft.franchise.enums.PaymentMethod;
-import fsoft.franchise.repository.AccountRepository;
 import fsoft.franchise.repository.OrderRepository;
-import fsoft.franchise.repository.PaymentRepository;
 import fsoft.franchise.repository.ProductRepository;
-import fsoft.franchise.service.MoMoPaymentService;
+// import fsoft.franchise.repository.PaymentRepository;
+// import fsoft.franchise.service.MoMoPaymentService;
+// import fsoft.franchise.service.VNPayService;
+// import fsoft.franchise.service.PaymentMethodService;
 import fsoft.franchise.service.OrderService;
 import fsoft.franchise.service.OrderTrackingService;
-import fsoft.franchise.service.PaymentMethodService;
-import fsoft.franchise.service.VNPayService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -35,13 +35,16 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class OrderServiceImpl implements OrderService {
 
         private static final int MAX_PAGE_SIZE = 100;
@@ -51,27 +54,42 @@ public class OrderServiceImpl implements OrderService {
                 return List.of(OrderStatus.values());
         }
 
+        @Override
+        public OrderEnumsResponse getOrderEnums() {
+                return OrderEnumsResponse.builder()
+                                .orderStatuses(List.of(OrderStatus.values()))
+                                .paymentMethods(List.of(PaymentMethod.values()))
+                                .momoRequestTypes(List.of(
+                                                MomoRequestType.CAPTURE_WALLET.getMomoCode(),
+                                                MomoRequestType.PAY_WITH_ATM.getMomoCode()))
+                                .orderTypes(List.of("ONLINE", "POS"))
+                                .build();
+        }
+
         @Value("${app.payment.return-url:http://localhost:5173/payment/result}")
         private String paymentReturnUrl;
 
         private final OrderRepository orderRepository;
         private final ProductRepository productRepository;
-        private final PaymentRepository paymentRepository;
-        private final AccountRepository AccountRepository;
-        private final MoMoPaymentService moMoPaymentService;
-        private final PaymentMethodService paymentMethodService;
-        private final VNPayService vnPayService;
-
         private final OrderTrackingService orderTrackingService;
+        private final FranchiseStoreClient franchiseStoreClient;
+        private final InventoryClient inventoryClient;
+
+        // private final PaymentRepository paymentRepository;
+        // private final MoMoPaymentService moMoPaymentService;
+        // private final PaymentMethodService paymentMethodService;
+        // private final VNPayService vnPayService;
 
         @Override
-        public OrderCancelResponse cancelOrder(UUID orderId, UUID userId) {
+        public OrderCancelResponse cancelOrder(UUID orderId, UUID userId, String role) {
                 // validate order id
                 OrderEntity order = orderRepository.findById(orderId)
                                 .orElseThrow(() -> new ApiException(OrderErrorCode.ORDER_NOT_FOUND));
-
+                boolean canCancle = "ADMIN".equalsIgnoreCase(role)
+                                || "MANAGER".equalsIgnoreCase(role)
+                                || "POS".equalsIgnoreCase(role);
                 // validate owner (uid in jwt)
-                if (!order.getCustomer().getId().equals(userId))
+                if (!canCancle && !order.getCustomerId().equals(userId))
                         throw new ApiException(OrderErrorCode.ORDER_NOT_OWNED);
 
                 if (order.getStatus() == OrderStatus.PAID) {
@@ -102,7 +120,7 @@ public class OrderServiceImpl implements OrderService {
                         throw new ApiException(CommonErrorCode.BAD_REQUEST, "Invalid pagination parameters");
                 }
                 Pageable pageable = PageRequest.of(page - 1, size);
-                Page<OrderEntity> slice = orderRepository.findByCustomer_IdOrderByOrderTimeDesc(customerId, pageable);
+                Page<OrderEntity> slice = orderRepository.findByCustomerIdOrderByOrderTimeDesc(customerId, pageable);
                 List<OrderHistoryItem> content = slice.getContent().stream()
                                 .map(o -> {
                                         BigDecimal amount = o.getTotalAmount();
@@ -115,8 +133,11 @@ public class OrderServiceImpl implements OrderService {
                                         }
                                         return OrderHistoryItem.builder()
                                                         .id(o.getId())
+                                                        .orderNumber(o.getOrderNumber())
                                                         .totalAmount(amount)
                                                         .status(o.getStatus())
+                                                        .recipientName(o.getRecipientName())
+                                                        .recipientPhone(o.getRecipientPhone())
                                                         .createdAt(o.getOrderTime())
                                                         .build();
                                 })
@@ -130,19 +151,139 @@ public class OrderServiceImpl implements OrderService {
                                 .build();
         }
 
+        // =====================================================================
+        // PRIVATE HELPER: Validate store (active) + inventory stock
+        // =====================================================================
+
+        /**
+         * Validates:
+         * 1. The franchise store exists and is ACTIVE.
+         * 2. The store has sufficient ingredient stock to fulfill the order items.
+         *
+         * Algorithm:
+         * - For each order item, load the selected (or first active) ProductVariant.
+         * - From the variant's ProductVariantIngredientEntity list, accumulate the
+         * total ingredient quantities needed (quantity_per_unit × order_quantity).
+         * - Fetch the store's current inventory from the Inventory service.
+         * - Compare required vs available for each ingredient. Throw INSUFFICIENT_STOCK
+         * if any ingredient falls short.
+         */
+        private void validateStoreAndStock(UUID storeId,
+                        List<CreateOrderRequest.OrderItemRequest> items,
+                        List<ProductEntity> resolvedProducts) {
+
+                // --- 1. Validate store ---
+                FranchiseStoreResponse store;
+                try {
+                        var resp = franchiseStoreClient.getStoreById(storeId);
+                        store = resp.result();
+                } catch (feign.FeignException.NotFound e) {
+                        throw new ApiException(OrderErrorCode.STORE_NOT_FOUND,
+                                        "Store not found: " + storeId);
+                } catch (Exception e) {
+                        log.error("Failed to call FranchiseStore service for storeId={}: {}", storeId, e.getMessage());
+                        throw new ApiException(OrderErrorCode.STORE_NOT_FOUND,
+                                        "Unable to reach FranchiseStore service");
+                }
+
+                if (store == null || !"ACTIVE".equalsIgnoreCase(store.status())) {
+                        String currentStatus = store != null ? store.status() : "unknown";
+                        throw new ApiException(OrderErrorCode.STORE_NOT_ACTIVE,
+                                        "Store " + storeId + " is not active (status: " + currentStatus + ")");
+                }
+
+                // --- 2. Aggregate required ingredient quantities from order items ---
+                // Map: ingredientId -> total quantity required
+                Map<UUID, BigDecimal> requiredIngredients = new HashMap<>();
+
+                for (int i = 0; i < items.size(); i++) {
+                        CreateOrderRequest.OrderItemRequest itemReq = items.get(i);
+                        ProductEntity product = resolvedProducts.get(i);
+
+                        // Resolve variant (same logic as createOrder)
+                        ProductVariantEntity variant = null;
+                        if (itemReq.variantId() != null) {
+                                variant = product.getVariants().stream()
+                                                .filter(v -> v.getId().equals(itemReq.variantId()))
+                                                .findFirst().orElse(null);
+                        } else {
+                                variant = product.getVariants() == null ? null
+                                                : product.getVariants().stream()
+                                                                .filter(v -> Boolean.TRUE.equals(v.getActive()))
+                                                                .findFirst().orElse(null);
+                        }
+
+                        if (variant == null || variant.getIngredients() == null) {
+                                continue; // no ingredient mapping — skip
+                        }
+
+                        BigDecimal orderQty = BigDecimal.valueOf(itemReq.quantity());
+                        for (ProductVariantIngredientEntity pvi : variant.getIngredients()) {
+                                if (pvi.getIngredient() == null || pvi.getQuantity() == null)
+                                        continue;
+                                UUID ingredientId = pvi.getIngredient().getId();
+                                BigDecimal needed = pvi.getQuantity().multiply(orderQty);
+                                requiredIngredients.merge(ingredientId, needed, BigDecimal::add);
+                        }
+                }
+
+                if (requiredIngredients.isEmpty()) {
+                        log.debug("No ingredient mapping found for storeId={}, skipping inventory check", storeId);
+                        return;
+                }
+
+                // --- 3. Fetch store inventory from Inventory service ---
+                List<StoreInventoryResponse> inventoryList;
+                try {
+                        var invResp = inventoryClient.getStoreInventory(storeId);
+                        inventoryList = invResp.result();
+                } catch (Exception e) {
+                        log.error("Failed to call Inventory service for storeId={}: {}", storeId, e.getMessage());
+                        throw new ApiException(OrderErrorCode.INSUFFICIENT_STOCK,
+                                        "Unable to reach Inventory service to verify stock");
+                }
+
+                // Build a map: ingredientId -> available quantity in inventory
+                Map<UUID, BigDecimal> availableStock = new HashMap<>();
+                if (inventoryList != null) {
+                        for (StoreInventoryResponse inv : inventoryList) {
+                                availableStock.put(inv.ingredientId(),
+                                                inv.quantity() != null ? inv.quantity() : BigDecimal.ZERO);
+                        }
+                }
+
+                // --- 4. Compare required vs available ---
+                for (Map.Entry<UUID, BigDecimal> entry : requiredIngredients.entrySet()) {
+                        UUID ingredientId = entry.getKey();
+                        BigDecimal required = entry.getValue();
+                        BigDecimal available = availableStock.getOrDefault(ingredientId, BigDecimal.ZERO);
+                        if (available.compareTo(required) < 0) {
+                                throw new ApiException(OrderErrorCode.INSUFFICIENT_STOCK,
+                                                "Insufficient stock for ingredient " + ingredientId
+                                                                + ": required=" + required
+                                                                + ", available=" + available);
+                        }
+                }
+        }
+
         @Override
         @Transactional
         public CreateOrderResponse createOrder(CreateOrderRequest request, UUID customerId) {
-                // 1. Tìm customer
-                AccountEntity customer = AccountRepository.findById(customerId)
-                                .orElseThrow(() -> new ApiException(OrderErrorCode.ORDER_NOT_FOUND));
 
                 // 2. Tạo order
+                String orderNumber = "ORD-" + LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd"))
+                                + "-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+
                 OrderEntity order = OrderEntity.builder()
-                                .customer(customer)
+                                .storeId(request.storeId())
+                                .customerId(customerId)
                                 .status(OrderStatus.PENDING)
+                                .orderNumber(orderNumber)
                                 .orderTime(LocalDateTime.now())
                                 .deliveryAddress(request.deliveryAddress())
+                                .recipientName(request.recipientName())
+                                .recipientPhone(request.recipientPhone())
+                                .note(request.note())
                                 .build();
 
                 // 3. Tạo order items, tính tiền, trừ tồn kho
@@ -150,11 +291,28 @@ public class OrderServiceImpl implements OrderService {
                 List<CreateOrderResponse.OrderItemResponse> itemResponses = new ArrayList<>();
                 BigDecimal totalAmount = BigDecimal.ZERO;
 
+                // Pre-load all products for stock validation
+                List<ProductEntity> resolvedProducts = new ArrayList<>();
                 for (CreateOrderRequest.OrderItemRequest itemReq : request.items()) {
                         ProductEntity product = productRepository.findById(itemReq.productId())
                                         .orElseThrow(() -> new ApiException(OrderErrorCode.ORDER_NOT_FOUND));
+                        if (!Boolean.TRUE.equals(product.getActive())) {
+                                throw new ApiException(OrderErrorCode.PRODUCT_OUT_OF_STOCK);
+                        }
+                        resolvedProducts.add(product);
+                }
 
-                        // Kiểm tra tồn kho (active is now Boolean)
+                // Validate store + inventory BEFORE creating anything
+                validateStoreAndStock(request.storeId(), request.items(), resolvedProducts);
+
+                // Set storeId on the order
+                order.setStoreId(request.storeId());
+
+                for (int idx = 0; idx < request.items().size(); idx++) {
+                        CreateOrderRequest.OrderItemRequest itemReq = request.items().get(idx);
+                        ProductEntity product = resolvedProducts.get(idx);
+
+                        // Kiểm tra tồn kho (active is now Boolean) — already checked above, kept for clarity
                         if (!Boolean.TRUE.equals(product.getActive())) {
                                 throw new ApiException(OrderErrorCode.PRODUCT_OUT_OF_STOCK);
                         }
@@ -215,191 +373,181 @@ public class OrderServiceImpl implements OrderService {
 
                 return new CreateOrderResponse(
                                 savedOrder.getId(),
+                                savedOrder.getOrderNumber(),
                                 savedOrder.getStatus(),
                                 savedOrder.getOrderTime(),
                                 totalAmount,
-                                itemResponses);
+                                itemResponses,
+                                savedOrder.getNote(),
+                                savedOrder.getDeliveryAddress());
+        }
+
+        /*
+         * @Override
+         * 
+         * @Transactional
+         * public PaymentResponse processPayment(UUID orderId, PaymentRequest request,
+         * UUID customerId, String ipAddress) {
+         * OrderEntity order = orderRepository.findById(orderId)
+         * .orElseThrow(() -> new ApiException(OrderErrorCode.ORDER_NOT_FOUND));
+         * 
+         * if (!order.getCustomerId().equals(customerId)) {
+         * throw new ApiException(OrderErrorCode.ORDER_NOT_OWNED);
+         * }
+         * 
+         * if (order.getStatus() == OrderStatus.PAID) {
+         * throw new ApiException(OrderErrorCode.ORDER_ALREADY_PAID);
+         * }
+         * 
+         * BigDecimal orderTotal = order.getOrderItems().stream()
+         * .map(item ->
+         * item.getUnitPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
+         * .reduce(BigDecimal.ZERO, BigDecimal::add);
+         * 
+         * if (request.amount().compareTo(orderTotal) != 0) {
+         * throw new ApiException(PaymentErrorCode.PAYMENT_AMOUNT_MISMATCH);
+         * }
+         * 
+         * PaymentEntity payment = paymentRepository
+         * .findFirstByOrder_IdAndStatus(orderId, PaymentStatus.PENDING)
+         * .orElse(null);
+         * 
+         * if (payment == null) {
+         * payment = new PaymentEntity();
+         * payment.setOrder(order);
+         * payment.setPaymentMethod(request.paymentMethod());
+         * payment.setAmountPaid(request.amount());
+         * payment.setStatus(PaymentStatus.PENDING);
+         * payment.setTransactionId(UUID.randomUUID().toString());
+         * paymentRepository.save(payment);
+         * }
+         * 
+         * long amountRaw = request.amount().longValue();
+         * 
+         * if (request.paymentMethod() == PaymentMethod.VNPAY) {
+         * String payUrl = vnPayService.createPaymentUrl(
+         * orderId.toString(),
+         * amountRaw,
+         * payment.getTransactionId(),
+         * ipAddress != null ? ipAddress : "127.0.0.1");
+         * 
+         * order.setStatus(OrderStatus.PROCESSING);
+         * payment.setPaymentUrl(payUrl);
+         * orderRepository.save(order);
+         * paymentRepository.save(payment);
+         * 
+         * return new PaymentResponse(
+         * payment.getId(),
+         * order.getId(),
+         * payment.getPaymentMethod().toString(),
+         * payment.getAmountPaid(),
+         * payment.getStatus().toString(),
+         * order.getStatus(),
+         * payUrl,
+         * LocalDateTime.now().plusMinutes(15),
+         * LocalDateTime.now());
+         * }
+         * 
+         * if (request.paymentMethod() == PaymentMethod.MOMO) {
+         * MomoRequestType requestType = request.resolvedMomoRequestType();
+         * String payUrl = moMoPaymentService.createPaymentLink(
+         * orderId,
+         * amountRaw,
+         * "Thanh toan don hang #" + orderId,
+         * requestType.getMomoCode());
+         * 
+         * order.setStatus(OrderStatus.PROCESSING);
+         * payment.setPaymentUrl(payUrl);
+         * orderRepository.save(order);
+         * paymentRepository.save(payment);
+         * 
+         * return new PaymentResponse(
+         * payment.getId(),
+         * order.getId(),
+         * payment.getPaymentMethod().toString(),
+         * payment.getAmountPaid(),
+         * payment.getStatus().toString(),
+         * order.getStatus(),
+         * payUrl,
+         * LocalDateTime.now().plusMinutes(15),
+         * LocalDateTime.now());
+         * }
+         * 
+         * order.setStatus(OrderStatus.PAID);
+         * payment.setStatus(PaymentStatus.PAID);
+         * orderRepository.save(order);
+         * paymentRepository.save(payment);
+         * 
+         * orderTrackingService.sendTrackingUpdate(orderId, OrderStatus.PENDING,
+         * OrderStatus.PAID, customerId);
+         * 
+         * return new PaymentResponse(
+         * payment.getId(),
+         * order.getId(),
+         * payment.getPaymentMethod().toString(),
+         * payment.getAmountPaid(),
+         * payment.getStatus().toString(),
+         * order.getStatus(),
+         * null,
+         * null,
+         * LocalDateTime.now());
+         * }
+         */
+
+
+        private static final int BASE_TIME_MINUTES = 3;
+        private static final int AVG_TIME_PER_ORDER = 2;
+        private static final int AVG_TIME_PER_ITEM = 1;
+
+        @Override
+        public EstimateResponse estimatePreparationTime(UUID storeId, int itemCount) {
+
+                if (itemCount <= 0) {
+                        throw new ApiException(CommonErrorCode.BAD_REQUEST, "itemCount must be > 0");
+                }
+                int activeOrderCount = orderRepository.countPreparingByStoreId(storeId);
+                int estimatedMinutes = BASE_TIME_MINUTES + (activeOrderCount * AVG_TIME_PER_ORDER)
+                                + (itemCount * AVG_TIME_PER_ITEM);
+                return EstimateResponse.builder()
+                                .storeId(storeId)
+                                .estimatedMinutes(estimatedMinutes)
+                                .activeOrderCount(activeOrderCount)
+                                .itemCount(itemCount)
+                                .calculatedAt(LocalDateTime.now())
+                                .build();
         }
 
         @Override
         @Transactional
-        public PaymentResponse processPayment(UUID orderId, PaymentRequest request, UUID customerId, String ipAddress) {
-                // 1. Tìm order
+        public FlagOrderResponse flagOrder(UUID orderId, FlagOrderRequest request, UUID currentUserId, String role,
+                        Long currentUserStoreId) {
                 OrderEntity order = orderRepository.findById(orderId)
                                 .orElseThrow(() -> new ApiException(OrderErrorCode.ORDER_NOT_FOUND));
-
-                // 2. Validate owner
-                if (!order.getCustomer().getId().equals(customerId)) {
-                        throw new ApiException(OrderErrorCode.ORDER_NOT_OWNED);
+                boolean isAdmin = "ADMIN".equalsIgnoreCase(role);
+                boolean isManager = "MANAGER".equalsIgnoreCase(role);
+                boolean isPos = "POS".equalsIgnoreCase(role);
+                if (!isAdmin && !isManager && !isPos && !order.getStoreId().equals(currentUserStoreId)) {
+                        throw new ApiException(CommonErrorCode.FORBIDDEN,
+                                        "You do not have permission to flag this order");
                 }
-
-                // 3. Kiểm tra trạng thái đơn hàng
-                if (order.getStatus() == OrderStatus.PAID) {
-                        throw new ApiException(OrderErrorCode.ORDER_ALREADY_PAID);
+                if (order.getStatus() != OrderStatus.PAID && order.getStatus() != OrderStatus.PREPARING) {
+                        throw new ApiException(OrderErrorCode.INVALID_ORDER_STATUS,
+                                        "Chỉ đơn PAID hoặc PREPARING mới được flag");
                 }
-                if (order.getStatus() != OrderStatus.PENDING && order.getStatus() != OrderStatus.PROCESSING) {
-                        throw new ApiException(OrderErrorCode.INVALID_ORDER_STATUS);
-                }
-
-                // 4. Validate payment method
-                // Spring Boot tự throw lỗi nếu k match enum
-
-                // 5. Tính tổng tiền đơn hàng
-                BigDecimal orderTotal = order.getOrderItems().stream()
-                                .map(item -> item.getUnitPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
-                                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-                // 6. Validate số tiền thanh toán
-                if (request.amount().compareTo(orderTotal) != 0) {
-                        throw new ApiException(PaymentErrorCode.PAYMENT_AMOUNT_MISMATCH);
-                }
-
-                // 7. Idempotency: nếu đã có payment PENDING cho order này → tái sử dụng, không
-                // tạo mới
-                PaymentEntity payment = paymentRepository
-                                .findFirstByOrder_IdAndStatus(orderId, PaymentStatus.PENDING)
-                                .orElse(null);
-
-                if (payment == null) {
-                        payment = new PaymentEntity();
-                        payment.setOrder(order);
-                        payment.setPaymentMethod(request.paymentMethod());
-                        payment.setAmountPaid(request.amount());
-                        payment.setStatus(PaymentStatus.PENDING);
-                        payment.setTransactionId(UUID.randomUUID().toString());
-                        paymentRepository.save(payment);
-                }
-
-            // Giá trị đơn hàng đã là VNĐ. VNPay & MoMo yêu cầu truyền lên số nguyên nhân với 100.
-            long amountVnd = request.amount().multiply(java.math.BigDecimal.valueOf(100)).longValue();
-
-            // 8a. VNPAY → generate VNPay payment URL
-                if (request.paymentMethod() == PaymentMethod.VNPAY) {
-                        String payUrl = vnPayService.createPaymentUrl(
-                                        orderId.toString(),
-                                        amountVnd,
-                                        payment.getTransactionId(),
-                                        ipAddress != null ? ipAddress : "127.0.0.1");
-
-                        // Update order status and save payment URL
-                        order.setStatus(OrderStatus.PROCESSING);
-                        payment.setPaymentUrl(payUrl);
-                        orderRepository.save(order);
-                        paymentRepository.save(payment);
-
-                        return new PaymentResponse(
-                                        payment.getId(),
-                                        order.getId(),
-                                        payment.getPaymentMethod().toString(),
-                                        payment.getAmountPaid(),
-                                        payment.getStatus().toString(),
-                                        order.getStatus(),
-                                        payUrl,
-                                        LocalDateTime.now().plusMinutes(15),
-                                        LocalDateTime.now());
-                }
-
-                // 8b. MOMO → validate request type rồi gọi MoMo API tạo payment link
-                if (request.paymentMethod() == PaymentMethod.MOMO) {
-                        MomoRequestType requestType = request.resolvedMomoRequestType();
-                        if (!paymentMethodService.isMomoRequestTypeEnabled(requestType.getMomoCode())) {
-                                throw new ApiException(PaymentErrorCode.INVALID_PAYMENT_METHOD,
-                                                "MoMo request type '" + requestType.getMomoCode()
-                                                                + "' is not enabled in the current environment");
-                        }
-                        String payUrl = moMoPaymentService.createPaymentLink(
-                                        orderId,
-                                        amountVnd,
-                                        "Thanh toan don hang #" + orderId,
-                                        requestType.getMomoCode());
-
-                        // Update order status and save payment URL
-                        order.setStatus(OrderStatus.PROCESSING);
-                        payment.setPaymentUrl(payUrl);
-                        orderRepository.save(order);
-                        paymentRepository.save(payment);
-
-                        return new PaymentResponse(
-                                        payment.getId(),
-                                        order.getId(),
-                                        payment.getPaymentMethod().toString(),
-                                        payment.getAmountPaid(),
-                                        payment.getStatus().toString(),
-                                        order.getStatus(),
-                                        payUrl,
-                                        LocalDateTime.now().plusMinutes(15),
-                                        LocalDateTime.now());
-                }
-
-                // 9. Các phương thức khác (CASH, WALLET...) → cập nhật trạng thái đơn thành
-                // Paid ngay
-                order.setStatus(OrderStatus.PAID);
-                payment.setStatus(PaymentStatus.PAID);
-                orderRepository.save(order);
-                paymentRepository.save(payment);
-
-                // Push real-time notification: thanh toán thành công
-                orderTrackingService.sendTrackingUpdate(orderId, OrderStatus.PENDING, OrderStatus.PAID, customerId);
-
-                return new PaymentResponse(
-                                payment.getId(),
-                                order.getId(),
-                                payment.getPaymentMethod().toString(),
-                                payment.getAmountPaid(),
-                                payment.getStatus().toString(),
-                                order.getStatus(),
-                                null,
-                                null,
-                                LocalDateTime.now());
-        }
-
-        @Override
-        @Transactional
-        public PaymentResponse confirmPayment(UUID orderId, UUID paymentId, boolean success, UUID customerId) {
-                OrderEntity order = orderRepository.findById(orderId)
-                                .orElseThrow(() -> new ApiException(OrderErrorCode.ORDER_NOT_FOUND));
-
-                if (!order.getCustomer().getId().equals(customerId))
-                        throw new ApiException(OrderErrorCode.ORDER_NOT_OWNED);
-
-                PaymentEntity payment = paymentRepository.findByOrder_IdOrderByPaymentDateDesc(orderId)
-                                .stream()
-                                .filter(p -> p.getId().equals(paymentId) && p.getStatus() == PaymentStatus.PENDING)
-                                .findFirst()
-                                .orElseThrow(() -> new ApiException(PaymentErrorCode.PAYMENT_NOT_FOUND));
-
-                OrderStatus previousStatus = order.getStatus();
-                if (success) {
-                        payment.setStatus(PaymentStatus.PAID);
-                        payment.setPaymentDate(LocalDateTime.now());
-                        payment.setPaymentUrl(null); // Clear URL once paid
-                        order.setStatus(OrderStatus.PAID);
-                } else {
-                        payment.setStatus(PaymentStatus.FAILED);
-                        payment.setErrorMessage("Payment cancelled or failed");
-                        payment.setPaymentUrl(null); // Clear URL so they can retry
-                        // Order reverts to PENDING — customer can retry from order detail
-                        order.setStatus(OrderStatus.PENDING);
-                }
-
-                paymentRepository.save(payment);
-                orderRepository.save(order);
-
-                // Push real-time notification: payment result
-                if (success) {
-                        orderTrackingService.sendTrackingUpdate(orderId, previousStatus, OrderStatus.PAID, customerId);
-                }
-
-                return new PaymentResponse(
-                                payment.getId(),
-                                order.getId(),
-                                payment.getPaymentMethod().toString(),
-                                payment.getAmountPaid(),
-                                payment.getStatus().toString(),
-                                order.getStatus(),
-                                null,
-                                null,
-                                LocalDateTime.now());
+                order.setIsFlagged(true);
+                order.setFlagReason(request.getReason());
+                order.setFlaggedBy(currentUserId);
+                order.setFlaggedAt(LocalDateTime.now());
+                OrderEntity saved = orderRepository.save(order);
+                return FlagOrderResponse.builder()
+                                .orderId(saved.getId())
+                                .orderNumber(saved.getOrderNumber())
+                                .isFlagged(saved.getIsFlagged())
+                                .flagReason(saved.getFlagReason())
+                                .flaggedBy(saved.getFlaggedBy())
+                                .flaggedAt(saved.getFlaggedAt())
+                                .currentStatus(saved.getStatus().name())
+                                .build();
         }
 
         @Override
@@ -407,11 +555,11 @@ public class OrderServiceImpl implements OrderService {
         public OrderStatusResponse getStatus(UUID orderId, UUID userId, String role) {
                 OrderEntity order = orderRepository.findByIdWithCustomer(orderId)
                                 .orElseThrow(() -> new ApiException(OrderErrorCode.ORDER_NOT_FOUND));
-                // FRANCHISE_ADMIN và STORE_MANAGER được xem mọi order; CUSTOMER chỉ xem order
-                // của mình
-                boolean canViewAnyOrder = "FRANCHISE_ADMIN".equalsIgnoreCase(role)
-                                || "STORE_MANAGER".equalsIgnoreCase(role);
-                if (!canViewAnyOrder && !order.getCustomer().getId().equals(userId))
+                // ADMIN, MANAGER and POS được xem mọi order; CUSTOMER chỉ xem order of mình
+                boolean canViewAnyOrder = "ADMIN".equalsIgnoreCase(role)
+                                || "MANAGER".equalsIgnoreCase(role)
+                                || "POS".equalsIgnoreCase(role);
+                if (!canViewAnyOrder && !order.getCustomerId().equals(userId))
                         throw new ApiException(OrderErrorCode.ORDER_NOT_OWNED);
                 return OrderStatusResponse.builder()
                                 .id(order.getId())
@@ -424,13 +572,15 @@ public class OrderServiceImpl implements OrderService {
         @Transactional(readOnly = true)
         public OrderHistoryPage getOrderHistory(int page, int size,
                         Optional<String> status,
-                        Optional<Long> branchId,
+                        Optional<UUID> storeId,
                         Optional<LocalDate> fromDate,
                         Optional<LocalDate> toDate,
                         String role) {
-                // Chỉ FRANCHISE_ADMIN và STORE_MANAGER được dùng API lịch sử đơn hàng; CUSTOMER
-                // → 403
-                if (!"FRANCHISE_ADMIN".equalsIgnoreCase(role) && !"STORE_MANAGER".equalsIgnoreCase(role)) {
+                // Chỉ ADMIN, MANAGER và POS được dùng API lịch sử đơn hàng; CUSTOMER → 403
+                boolean isPrivileged = "ADMIN".equalsIgnoreCase(role)
+                                || "MANAGER".equalsIgnoreCase(role)
+                                || "POS".equalsIgnoreCase(role);
+                if (!isPrivileged) {
                         throw new ApiException(CommonErrorCode.FORBIDDEN);
                 }
                 if (page < 1 || size < 1 || size > MAX_PAGE_SIZE) {
@@ -453,10 +603,15 @@ public class OrderServiceImpl implements OrderService {
                 Pageable pageable = PageRequest.of(page - 1, size);
                 Page<OrderEntity> slice = orderRepository.findOrderHistory(
                                 statusEnum,
-                                branchId.orElse(null),
+                                storeId.orElse(null),
                                 fromDateTime,
                                 toDateTime,
                                 pageable);
+                BigDecimal filterTotalAmount = orderRepository.sumTotalAmountByFilter(
+                                statusEnum,
+                                storeId.orElse(null),
+                                fromDateTime,
+                                toDateTime);
                 List<OrderHistoryItem> content = slice.getContent().stream()
                                 .map(o -> {
                                         OrderStatus orderStatus = null;
@@ -478,8 +633,11 @@ public class OrderServiceImpl implements OrderService {
                                         }
                                         return OrderHistoryItem.builder()
                                                         .id(o.getId())
+                                                        .orderNumber(o.getOrderNumber())
                                                         .totalAmount(amount)
                                                         .status(orderStatus)
+                                                        .recipientName(o.getRecipientName())
+                                                        .recipientPhone(o.getRecipientPhone())
                                                         .createdAt(o.getOrderTime())
                                                         .build();
                                 })
@@ -491,6 +649,7 @@ public class OrderServiceImpl implements OrderService {
                                 .size(size)
                                 .totalElements(slice.getTotalElements())
                                 .totalPages(slice.getTotalPages())
+                                .totalAmount(filterTotalAmount != null ? filterTotalAmount : BigDecimal.ZERO)
                                 .build();
         }
 
@@ -517,24 +676,12 @@ public class OrderServiceImpl implements OrderService {
                 order.setPayments(orderWithPayments.getPayments());
 
                 // 2. Ownership check: CUSTOMER can only view their own orders;
-                // FRANCHISE_ADMIN and STORE_MANAGER can view any order
-                boolean isManager = "FRANCHISE_ADMIN".equalsIgnoreCase(role)
-                                || "STORE_MANAGER".equalsIgnoreCase(role);
-                if (!isManager && !order.getCustomer().getId().equals(currentUserId))
+                // ADMIN, MANAGER and POS can view any order
+                boolean isPrivileged = "ADMIN".equalsIgnoreCase(role)
+                                || "MANAGER".equalsIgnoreCase(role)
+                                || "POS".equalsIgnoreCase(role);
+                if (!isPrivileged && !order.getCustomerId().equals(currentUserId))
                         throw new ApiException(OrderErrorCode.ORDER_NOT_OWNED);
-
-                // 3. Build CustomerInfo
-                OrderDetailResponse.CustomerInfo customerInfo = OrderDetailResponse.CustomerInfo.builder()
-                                .customerId(String.valueOf(order.getCustomer().getId()))
-                                .customerName(order.getCustomer().getProfile() != null
-                                                ? order.getCustomer().getProfile().getFirstName() + " "
-                                                                + order.getCustomer().getProfile().getLastName()
-                                                : "")
-                                .contactNumber(order.getCustomer().getPhoneNumber())
-                                .deliveryAddress("POS".equalsIgnoreCase(order.getOrderType())
-                                                ? null
-                                                : order.getDeliveryAddress())
-                                .build();
 
                 // 4. Build OrderItems
                 List<OrderDetailResponse.OrderItemInfo> itemInfos = order.getOrderItems().stream()
@@ -548,44 +695,27 @@ public class OrderServiceImpl implements OrderService {
                 BigDecimal discount = BigDecimal.ZERO;
                 BigDecimal totalAmount = subtotal.subtract(discount);
 
-                // 6. Build PaymentInfo
-                PaymentEntity payment = order.getPayments() != null && !order.getPayments().isEmpty()
-                                ? order.getPayments().stream().findFirst().orElse(null)
-                                : null;
-
-                OrderDetailResponse.PaymentInfo paymentInfo;
-                if (payment != null) {
-                        paymentInfo = OrderDetailResponse.PaymentInfo.builder()
-                                        .paymentMethod(payment.getPaymentMethod().toString())
-                                        .amountPaid(payment.getAmountPaid())
-                                        .paymentStatus(mapPaymentStatus(payment.getStatus().toString()))
-                                        .paymentDate("Pending".equalsIgnoreCase(payment.getStatus().toString())
-                                                        ? null
-                                                        : payment.getPaymentDate())
-                                        .paymentUrl(payment.getPaymentUrl())
-                                        .build();
-                } else {
-                        paymentInfo = OrderDetailResponse.PaymentInfo.builder()
-                                        .paymentStatus("Pending")
-                                        .amountPaid(BigDecimal.ZERO)
-                                        .build();
-                }
-
                 // 7. Build response
                 return OrderDetailResponse.builder()
                                 .orderId(order.getId())
                                 .orderNumber(order.getOrderNumber())
+                                .storeId(order.getStoreId())
                                 .status(order.getStatus())
                                 .orderType(order.getOrderType())
                                 .orderTime(order.getOrderTime())
-                                .customer(customerInfo)
+                                .customer(OrderDetailResponse.CustomerInfo.builder()
+                                                .customerId(String.valueOf(order.getCustomerId()))
+                                                .recipientName(order.getRecipientName())
+                                                .recipientPhone(order.getRecipientPhone())
+                                                .deliveryAddress(order.getDeliveryAddress())
+                                                .build())
+                                .note(order.getNote())
                                 .items(itemInfos)
                                 .pricing(OrderDetailResponse.PricingInfo.builder()
                                                 .subtotal(subtotal)
                                                 .discount(discount)
                                                 .totalAmount(totalAmount)
                                                 .build())
-                                .payment(paymentInfo)
                                 .createdAt(order.getCreatedAt())
                                 .updatedAt(order.getUpdatedAt())
                                 .build();
@@ -605,6 +735,7 @@ public class OrderServiceImpl implements OrderService {
                                 .productName(product != null ? product.getName() : "Unknown")
                                 .variantName(item.getProductVariant() != null ? item.getProductVariant().getSizeName()
                                                 : null)
+                                .variantId(item.getProductVariant() != null ? item.getProductVariant().getId() : null)
                                 .quantity(item.getQuantity())
                                 .unitPrice(item.getUnitPrice())
                                 .subtotal(subtotal)
@@ -619,4 +750,204 @@ public class OrderServiceImpl implements OrderService {
                         default -> "Pending";
                 };
         }
+
+        @Override
+        @Transactional
+        public CreatePosOrderResponse createPosOrder(CreatePosOrderRequest request, UUID staffId) {
+                // 1. Tạo order với type POS
+                OrderEntity order = OrderEntity.builder()
+                                .storeId(request.storeId())
+                                .customerId(request.customerId())
+                                .status(OrderStatus.PENDING)
+                                .orderTime(LocalDateTime.now())
+                                .orderType("POS")
+                                .recipientName(request.recipientName())
+                                .recipientPhone(request.recipientPhone())
+                                .note(request.note())
+                                .build();
+
+                // 2. Tạo order items, tính tiền, trừ tồn kho (logic tương tự createOrder)
+                List<OrderItemEntity> orderItems = new ArrayList<>();
+                List<CreatePosOrderResponse.OrderItemResponse> itemResponses = new ArrayList<>();
+                BigDecimal totalAmount = BigDecimal.ZERO;
+
+                // Pre-load all products for stock validation
+                List<ProductEntity> resolvedProducts = new ArrayList<>();
+                for (CreateOrderRequest.OrderItemRequest itemReq : request.items()) {
+                        ProductEntity product = productRepository.findById(itemReq.productId())
+                                        .orElseThrow(() -> new ApiException(OrderErrorCode.ORDER_NOT_FOUND));
+                        if (!Boolean.TRUE.equals(product.getActive())) {
+                                throw new ApiException(OrderErrorCode.PRODUCT_OUT_OF_STOCK);
+                        }
+                        resolvedProducts.add(product);
+                }
+
+                // Validate store + inventory BEFORE creating anything
+                validateStoreAndStock(request.storeId(), request.items(), resolvedProducts);
+
+                for (int idx = 0; idx < request.items().size(); idx++) {
+                        CreateOrderRequest.OrderItemRequest itemReq = request.items().get(idx);
+                        ProductEntity product = resolvedProducts.get(idx);
+
+                        ProductVariantEntity variant = null;
+                        if (itemReq.variantId() != null) {
+                                variant = product.getVariants().stream()
+                                                .filter(v -> v.getId().equals(itemReq.variantId()))
+                                                .findFirst()
+                                                .orElseThrow(() -> new ApiException(OrderErrorCode.ORDER_NOT_FOUND,
+                                                                "Variant not found for product: " + product.getName()));
+
+                                if (!Boolean.TRUE.equals(variant.getActive())) {
+                                        throw new ApiException(OrderErrorCode.PRODUCT_OUT_OF_STOCK,
+                                                        "Requested variant is inactive");
+                                }
+                        } else {
+                                variant = product.getVariants() == null ? null
+                                                : product.getVariants().stream()
+                                                                .filter(v -> Boolean.TRUE.equals(v.getActive()))
+                                                                .findFirst()
+                                                                .orElse(null);
+                        }
+
+                        BigDecimal unitPrice = variant != null && variant.getPrice() != null
+                                        ? variant.getPrice()
+                                        : BigDecimal.ZERO;
+                        BigDecimal subtotal = unitPrice.multiply(BigDecimal.valueOf(itemReq.quantity()));
+                        totalAmount = totalAmount.add(subtotal);
+
+                        OrderItemEntity orderItem = new OrderItemEntity();
+                        orderItem.setOrder(order);
+                        orderItem.setProductVariant(variant);
+                        orderItem.setQuantity(itemReq.quantity());
+                        orderItem.setUnitPrice(unitPrice);
+                        orderItems.add(orderItem);
+
+                        itemResponses.add(new CreatePosOrderResponse.OrderItemResponse(
+                                        product.getId(),
+                                        product.getName(),
+                                        variant != null ? variant.getSizeName() : null,
+                                        variant != null ? variant.getId() : null,
+                                        itemReq.quantity(),
+                                        unitPrice,
+                                        subtotal));
+                }
+
+                order.setOrderItems(orderItems);
+                order.setTotalAmount(totalAmount);
+
+                // 3. Lưu order
+                OrderEntity savedOrder = orderRepository.save(order);
+
+                // 4. Tracking
+                orderTrackingService.sendTrackingUpdate(
+                                savedOrder.getId(), null, OrderStatus.PENDING, staffId);
+
+                return new CreatePosOrderResponse(
+                                savedOrder.getId(),
+                                savedOrder.getStatus(),
+                                savedOrder.getOrderTime(),
+                                totalAmount,
+                                itemResponses,
+                                savedOrder.getNote()); //lưu tạm cho đê
+        }
+
+    @Override
+    @Transactional
+    public UpdatePosOrderResponse updatePosOrder(UUID orderId,
+                                                 UpdatePosOrderRequest request,
+                                                 UUID staffId) {
+
+        // 1. Lay order — 404 neu khong co
+        OrderEntity order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ApiException(OrderErrorCode.ORDER_NOT_FOUND));
+
+        // 2. Chi update duoc khi dang PENDING
+        //    PREPARING tro di = bep da bat dau lam -> khong cho sua
+        if (order.getStatus() != OrderStatus.PENDING) {
+            throw new ApiException(OrderErrorCode.ORDER_ALREADY_PAID,
+                    "Only PENDING orders can be modified. Current status: " + order.getStatus());
+        }
+
+        // 3. Update note neu co
+        if (request.note() != null) {
+            order.setNote(request.note());
+        }
+
+        // 4. Rebuild items neu client gui items moi
+        //    An toan hon la diff vi orphanRemoval = true se tu xoa item cu khoi DB
+        List<UpdatePosOrderResponse.OrderItemResponse> itemResponses = new ArrayList<>();
+        if (request.items() != null && !request.items().isEmpty()) {
+
+            // Xoa items cu — orphanRemoval tren @OneToMany se DELETE khoi DB
+            order.getOrderItems().clear();
+
+            List<OrderItemEntity> newItems = new ArrayList<>();
+            BigDecimal totalAmount = BigDecimal.ZERO;
+
+            for (UpdatePosOrderRequest.OrderItemRequest itemReq : request.items()) {
+                ProductEntity product = productRepository.findById(itemReq.productId())
+                        .orElseThrow(() -> new ApiException(OrderErrorCode.ORDER_NOT_FOUND));
+
+                if (!Boolean.TRUE.equals(product.getActive())) {
+                    throw new ApiException(OrderErrorCode.PRODUCT_OUT_OF_STOCK);
+                }
+
+                // Logic chon variant — giu nguyen y tu createPosOrder
+                ProductVariantEntity variant = null;
+                if (itemReq.variantId() != null) {
+                    variant = product.getVariants().stream()
+                            .filter(v -> v.getId().equals(itemReq.variantId()))
+                            .findFirst()
+                            .orElseThrow(() -> new ApiException(OrderErrorCode.ORDER_NOT_FOUND,
+                                    "Variant not found: " + product.getName()));
+
+                    if (!Boolean.TRUE.equals(variant.getActive())) {
+                        throw new ApiException(OrderErrorCode.PRODUCT_OUT_OF_STOCK,
+                                "Variant is inactive");
+                    }
+                } else {
+                    variant = product.getVariants() == null ? null
+                            : product.getVariants().stream()
+                            .filter(v -> Boolean.TRUE.equals(v.getActive()))
+                            .findFirst()
+                            .orElse(null);
+                }
+
+                BigDecimal unitPrice = variant != null && variant.getPrice() != null
+                        ? variant.getPrice() : BigDecimal.ZERO;
+                BigDecimal subtotal = unitPrice.multiply(BigDecimal.valueOf(itemReq.quantity()));
+                totalAmount = totalAmount.add(subtotal);
+
+                OrderItemEntity item = new OrderItemEntity();
+                item.setOrder(order);
+                item.setProductVariant(variant);
+                item.setQuantity(itemReq.quantity());
+                item.setUnitPrice(unitPrice);
+                newItems.add(item);
+
+                itemResponses.add(new UpdatePosOrderResponse.OrderItemResponse(
+                        product.getId(), product.getName(), variant != null ? variant.getSizeName() : null,
+                        itemReq.quantity(), unitPrice, subtotal));
+            }
+
+            order.getOrderItems().addAll(newItems);
+            order.setTotalAmount(totalAmount);
+        }
+
+        // 5. Luu — @Transactional + orphanRemoval xu ly delete/insert tu dong
+        OrderEntity saved = orderRepository.save(order);
+
+        // 6. Tracking
+        orderTrackingService.sendTrackingUpdate(
+                saved.getId(), OrderStatus.PENDING, OrderStatus.PENDING, staffId);
+
+        return new UpdatePosOrderResponse(
+                saved.getId(),
+                saved.getStatus(),
+                saved.getOrderTime(),
+                saved.getTotalAmount(),
+                itemResponses,
+                saved.getNote(),
+                saved.getUpdatedAt());
+    }
 }

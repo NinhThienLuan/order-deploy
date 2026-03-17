@@ -2,6 +2,7 @@ package fsoft.franchise.entity;
 
 import fsoft.franchise.enums.PaymentMethod;
 import fsoft.franchise.enums.PaymentStatus;
+import fsoft.franchise.enums.PaymentType;
 import fsoft.franchise.infrastructure.BaseEntity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -12,6 +13,7 @@ import lombok.experimental.SuperBuilder;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "payments")
@@ -22,8 +24,9 @@ import java.time.LocalDateTime;
 @SuperBuilder
 public class PaymentEntity extends BaseEntity {
 
+    // nullable = true: INBOUND / OUTBOUND payments have no linked order.
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "order_id", nullable = false)
+    @JoinColumn(name = "order_id", nullable = true)
     private OrderEntity order;
 
     @Column(name = "transaction_id", length = 100)
@@ -32,6 +35,10 @@ public class PaymentEntity extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "payment_method", length = 20, nullable = false)
     private PaymentMethod paymentMethod;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_type", length = 25, nullable = false)
+    private PaymentType paymentType;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", length = 20, nullable = false)
@@ -63,4 +70,8 @@ public class PaymentEntity extends BaseEntity {
     // Bank / instrument used (e.g. "NCB", "VCB", "VNPAYQR", "MOMO")
     @Column(name = "vnp_bank_code", length = 20)
     private String vnpBankCode;
+
+//    // Bug #5: Track which staff member confirmed a cash payment
+//    @Column(name = "confirmed_by_staff_id")
+//    private UUID confirmedByStaffId;
 }

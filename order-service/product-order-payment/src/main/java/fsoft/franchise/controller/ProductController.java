@@ -29,7 +29,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/products")
 @RequiredArgsConstructor
-@Tag(name = "Products", description = "Public product catalogue — no authentication required")
+@Tag(name = "Products", description = "Public product catalogue — no authentication required. Permission: Public (no JWT required).")
 public class ProductController {
 
         private final ProductService productService;
@@ -46,14 +46,14 @@ public class ProductController {
          * @param type       optional product type filter: MASTER or SIGNATURE
          */
         @GetMapping
-        @Operation(summary = "List products", description = "Paginated, filterable list of active products. Supports filtering by category, keyword, and type.")
+        @Operation(summary = "List products", description = "Paginated, filterable list of active products. Supports filtering by category, keyword, and type. Permission: Public (no JWT required).")
         public ResponseEntity<ApiResponse<Page<ProductSummaryResponse>>> getProducts(
                         HttpServletRequest request,
                         @RequestParam(name = "page", defaultValue = "0") int page,
                         @RequestParam(name = "size", defaultValue = "12") int size,
-                        @RequestParam(required = false) UUID categoryId,
-                        @RequestParam(required = false) String search,
-                        @RequestParam(required = false) String type) {
+    @RequestParam(required = false) UUID categoryId,
+    @RequestParam(required = false) String search,
+    @RequestParam(required = false) fsoft.franchise.enums.ProductType type) {
 
                 int safeSize = Math.min(size, 100);
                 Page<ProductSummaryResponse> result = productService.getProducts(page, safeSize, categoryId, search,
@@ -69,12 +69,27 @@ public class ProductController {
                                                 .build());
         }
 
+        @GetMapping("/recommended")
+        @Operation(summary = "Get recommended products", description = "Returns top-ordered products merged with manager-curated picks.")
+        public ResponseEntity<ApiResponse<List<ProductSummaryResponse>>> getRecommendedProducts(HttpServletRequest request) {
+                List<ProductSummaryResponse> result = productService.getRecommended();
+
+                return ResponseEntity.ok(
+                                ApiResponse.<List<ProductSummaryResponse>>builder()
+                                                .code(200)
+                                                .message(CommonErrorCode.SUCCESS.getMessage())
+                                                .result(result)
+                                                .timestamp(Instant.now())
+                                                .path(request.getRequestURI())
+                                                .build());
+        }
+
         /**
          * GET /v1/products/categories
          * Returns all active, non-deleted categories ordered by name.
          */
         @GetMapping("/categories")
-        @Operation(summary = "List categories", description = "Returns all active, non-deleted categories ordered by name.")
+        @Operation(summary = "List categories", description = "Returns all active, non-deleted categories ordered by name. Permission: Public (no JWT required).")
         public ResponseEntity<ApiResponse<List<CategoryResponse>>> getCategories(HttpServletRequest request) {
                 List<CategoryResponse> result = categoryService.getCategories();
 
@@ -93,7 +108,7 @@ public class ProductController {
          * Returns full product detail including all active variants and images.
          */
         @GetMapping("/{id}")
-        @Operation(summary = "Get product detail", description = "Returns full product detail including all active variants and images.")
+        @Operation(summary = "Get product detail", description = "Returns full product detail including all active variants and images. Permission: Public (no JWT required).")
         public ResponseEntity<ApiResponse<ProductDetailResponse>> getProductById(
                         HttpServletRequest request,
                         @PathVariable("id") UUID id) {

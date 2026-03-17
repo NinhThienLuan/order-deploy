@@ -5,6 +5,7 @@ import fsoft.franchise.exception.ProductErrorCode;
 import fsoft.franchise.dto.products.ProductVariantRequest;
 import fsoft.franchise.dto.products.VariantIngredientRequest;
 import fsoft.franchise.dto.products.ProductVariantResponse;
+import fsoft.franchise.dto.products.VariantIngredientResponse;
 import fsoft.franchise.entity.IngredientEntity;
 import fsoft.franchise.entity.ProductEntity;
 import fsoft.franchise.entity.ProductVariantEntity;
@@ -21,7 +22,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -76,15 +79,43 @@ public class ProductVariantServiceImpl implements ProductVariantService {
         variant.setPrice(request.getPrice());
         variant.setActive(request.isActive());
 
-        // Replace ingredients: delete old, insert new
-        ingredientRepository.deleteAllByVariantId(variantId);
-        variantRepository.saveAndFlush(variant);
+        // Surgical update of ingredients to avoid unique constraint violations
+        List<VariantIngredientRequest> newReqs = request.getIngredients() != null ? request.getIngredients() : new ArrayList<>();
+        
+        // 1. Map existing ones by ingredientId
+        Map<UUID, ProductVariantIngredientEntity> existingMap = variant.getIngredients() == null 
+            ? Map.of() 
+            : variant.getIngredients().stream()
+                .collect(Collectors.toMap(i -> i.getIngredient().getId(), i -> i));
 
-        List<ProductVariantIngredientEntity> ingredients = buildIngredients(request.getIngredients(), variant);
-        if (!ingredients.isEmpty()) {
-            ingredientRepository.saveAll(ingredients);
+        // 2. Identify new items to add and existing to update
+        List<ProductVariantIngredientEntity> toKeep = new ArrayList<>();
+        for (VariantIngredientRequest req : newReqs) {
+            ProductVariantIngredientEntity existing = existingMap.get(req.getIngredientId());
+            if (existing != null) {
+                // Update existing record
+                existing.setQuantity(req.getQuantity());
+                existing.setUnit(req.getUnit());
+                toKeep.add(existing);
+            } else {
+                // Add new record
+                IngredientEntity ingredient = ingredientEntityRepository.findById(req.getIngredientId())
+                        .orElseThrow(() -> new ApiException(ProductErrorCode.INGREDIENT_NOT_FOUND));
+                toKeep.add(ProductVariantIngredientEntity.builder()
+                        .variant(variant)
+                        .ingredient(ingredient)
+                        .quantity(req.getQuantity())
+                        .unit(req.getUnit())
+                        .build());
+            }
         }
-        variant.setIngredients(ingredients);
+
+        // 3. Update the collection (Hibernate orphanRemoval will handle the rest)
+        if (variant.getIngredients() == null) {
+            variant.setIngredients(new ArrayList<>());
+        }
+        variant.getIngredients().clear();
+        variant.getIngredients().addAll(toKeep);
 
         return toResponse(variantRepository.save(variant));
     }
@@ -131,6 +162,14 @@ public class ProductVariantServiceImpl implements ProductVariantService {
                 .sizeName(v.getSizeName())
                 .price(v.getPrice())
                 .active(v.getActive())
+                .ingredients(v.getIngredients() == null ? new ArrayList<VariantIngredientResponse>() : v.getIngredients().stream()
+                        .map(i -> VariantIngredientResponse.builder()
+                                .ingredientId(i.getIngredient().getId())
+                                .name(i.getIngredient().getName())
+                                .quantity(i.getQuantity())
+                                .unit(i.getUnit())
+                                .build())
+                        .toList())
                 .build();
     }
 }

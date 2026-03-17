@@ -36,16 +36,20 @@ public class OpenApiConfig {
 
         @Bean
         public OpenAPI customOpenAPI() {
-                Server server = new Server();
-                server.setUrl(serverUrl);
-                server.setDescription("Current Environment");
+                Server localServer = new Server();
+                localServer.setUrl("http://localhost:8081");
+                localServer.setDescription("Local Environment");
+
+                Server gatewayServer = new Server();
+                gatewayServer.setUrl("http://localhost:8080");
+                gatewayServer.setDescription("Gateway Environment");
 
                 return new OpenAPI()
                                 .info(new Info()
                                                 .title("Franchise web app")
                                                 .version("1.0")
                                                 .description("API Documentation for Franchise Coffee App"))
-                                .servers(List.of(server))
+                                .servers(List.of(gatewayServer, localServer))
                                 .security(List.of(
                                                 new io.swagger.v3.oas.models.security.SecurityRequirement()
                                                                 .addList("bearerAuth")));

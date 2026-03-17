@@ -13,6 +13,9 @@ public interface CategoryService {
     /** Returns all active, non-deleted categories. */
     List<CategoryResponse> getCategories();
 
+    /** Returns all categories, including soft-deleted ones, for admin purposes. */
+    List<CategoryResponse> getAdminCategories();
+
     /** Creates a new category and returns the persisted record. */
     CategoryResponse createCategory(CategoryRequest request);
 

@@ -14,9 +14,9 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PaymentFilterRequest {
+    private String storeId;
     private String orderId;
-    private UUID customerId;
-    private String email;
+    private String customerId;
     private String status;
 
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
@@ -31,4 +31,3 @@ public class PaymentFilterRequest {
     @Builder.Default
     private int size = 10;
 }
-

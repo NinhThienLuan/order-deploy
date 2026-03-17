@@ -1,5 +1,7 @@
 package fsoft.franchise.controller;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import fsoft.franchise.common.config.MoMoConfig;
 import fsoft.franchise.entity.PaymentEntity;
 import fsoft.franchise.entity.TransactionEntity;
@@ -31,7 +33,7 @@ import java.util.*;
 @RequestMapping("/api/v1/payments/momo")
 @RequiredArgsConstructor
 @Slf4j
-@Tag(name = "MoMo Callbacks", description = "Public MoMo IPN and return URL endpoints — called by MoMo server, no JWT required")
+@Tag(name = "MoMo Callbacks", description = "Public MoMo IPN and return URL endpoints — called by MoMo server. Permission: Public (no JWT required, signature validation applied).")
 public class MoMoCallbackController {
 
     private final MoMoPaymentService moMoPaymentService;
@@ -39,8 +41,21 @@ public class MoMoCallbackController {
     private final PaymentRepository paymentRepository;
     private final OrderRepository orderRepository;
     private final TransactionRepository transactionRepository;
-    // Push real-time tracking khi MoMo callback thanh toán thành công
     private final OrderTrackingService orderTrackingService;
+    private final ObjectMapper objectMapper;
+
+    /**
+     * Bug #3 fix: Parse orderId from MoMo extraData using Jackson instead of split().
+     */
+    private UUID parseOrderIdFromExtraData(String extraData) {
+        try {
+            String decoded = new String(Base64.getDecoder().decode(extraData), StandardCharsets.UTF_8);
+            JsonNode node = objectMapper.readTree(decoded);
+            return UUID.fromString(node.get("orderId").asText());
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Failed to parse orderId from extraData", e);
+        }
+    }
 
     /**
      * POST /v1/payments/momo/callback
@@ -50,7 +65,7 @@ public class MoMoCallbackController {
      * This is the authoritative source for payment status.
      */
     @PostMapping("/callback")
-    @Operation(summary = "MoMo IPN callback", description = "Instant Payment Notification from MoMo server — authoritative source for payment status. Verifies signature, records transaction, and updates order status.")
+    @Operation(summary = "MoMo IPN callback", description = "Instant Payment Notification from MoMo server — authoritative source for payment status. Verifies signature, records transaction, and updates order status. Permission: Public webhook endpoint.")
     @Transactional
     public ResponseEntity<Map<String, Object>> handleCallback(@RequestBody Map<String, String> params) {
         log.info("MoMo IPN callback received: {}", params);
@@ -65,14 +80,10 @@ public class MoMoCallbackController {
             return ResponseEntity.ok(response);
         }
 
-        // 2. Extract order UUID from extraData
+        // 2. Extract order UUID from extraData (Bug #3: safe JSON parsing)
         UUID orderId;
         try {
-            String extraData = params.get("extraData");
-            String decoded = new String(Base64.getDecoder().decode(extraData), StandardCharsets.UTF_8);
-            // Parse simple JSON {"orderId":"..."} without ObjectMapper
-            String orderIdStr = decoded.split("\"orderId\"\\s*:\\s*\"")[1].split("\"")[0];
-            orderId = UUID.fromString(orderIdStr);
+            orderId = parseOrderIdFromExtraData(params.get("extraData"));
         } catch (Exception e) {
             log.error("Failed to parse orderId from MoMo extraData", e);
             response.put("resultCode", 1);
@@ -100,7 +111,9 @@ public class MoMoCallbackController {
         // Scenario: user opened Tab2 (VNPay) → old MoMo payment locally FAILED →
         // user still paid on MoMo QR in Tab1 → IPN arrives here
         if (payment == null && success) {
-            // Look for the latest MOMO payment (FAILED due to local cancellation)
+            // Payment was FAILED locally (user switched to another method) but user
+            // still completed payment on old MoMo URL → gateway deducted money.
+            // We NEVER re-accept a FAILED payment. Log for manual refund.
             PaymentEntity cancelledMomoPayment = payments.stream()
                     .filter(p -> p.getPaymentMethod() == PaymentMethod.MOMO
                             && p.getStatus() == PaymentStatus.FAILED)
@@ -108,44 +121,23 @@ public class MoMoCallbackController {
                     .orElse(null);
 
             if (cancelledMomoPayment != null) {
-                boolean orderAlreadyPaid = payments.stream()
-                        .anyMatch(p -> p.getStatus() == PaymentStatus.PAID);
-
-                if (orderAlreadyPaid) {
-                    // Order already paid by another gateway → log for manual refund reconciliation
-                    log.warn("DOUBLE PAYMENT DETECTED for orderId={}. MoMo payment {} succeeded on gateway "
-                            + "but order was already paid by another method. Manual refund required.",
-                            orderId, cancelledMomoPayment.getId());
-                    // Record transaction for finance reconciliation (store response code on
-                    // payment)
-                    cancelledMomoPayment.setVnpResponseCode(String.valueOf(resultCode));
-                    cancelledMomoPayment.setVnpBankCode(params.getOrDefault("payType", "MOMO"));
-                    paymentRepository.save(cancelledMomoPayment);
-                    transactionRepository.save(TransactionEntity.builder()
-                            .payment(cancelledMomoPayment)
-                            .vnpTxnRef(params.get("orderId"))
-                            .vnpTransactionNo(params.get("transId"))
-                            .type(TransactionType.PAYMENT)
-                            .amount(new BigDecimal(params.getOrDefault("amount", "0")))
-                            .build());
-                    response.put("resultCode", 0);
-                    response.put("message", "OK (duplicate — order already paid)");
-                    return ResponseEntity.ok(response);
-                } else {
-                    // No other PAID payment → re-accept this cancelled MoMo payment
-                    log.info("Accepting locally-cancelled MoMo payment {} for orderId={}", cancelledMomoPayment.getId(),
-                            orderId);
-                    payment = cancelledMomoPayment;
-                    // Fail any other PENDING payments for this order to prevent triple payment
-                    final PaymentEntity acceptedPayment = payment;
-                    payments.stream()
-                            .filter(p -> p.getStatus() == PaymentStatus.PENDING
-                                    && !p.getId().equals(acceptedPayment.getId()))
-                            .forEach(p -> {
-                                p.setStatus(PaymentStatus.FAILED);
-                                paymentRepository.save(p);
-                            });
-                }
+                log.warn("DOUBLE PAYMENT DETECTED for orderId={}. MoMo payment {} succeeded on gateway "
+                        + "but was locally cancelled. Manual refund required on MoMo dashboard.",
+                        orderId, cancelledMomoPayment.getId());
+                // Record transaction for finance reconciliation
+                cancelledMomoPayment.setVnpResponseCode(String.valueOf(resultCode));
+                cancelledMomoPayment.setVnpBankCode(params.getOrDefault("payType", "MOMO"));
+                paymentRepository.save(cancelledMomoPayment);
+                transactionRepository.save(TransactionEntity.builder()
+                        .payment(cancelledMomoPayment)
+                        .vnpTxnRef(params.get("orderId"))
+                        .vnpTransactionNo(params.get("transId"))
+                        .type(TransactionType.PAYMENT)
+                        .amount(new BigDecimal(params.getOrDefault("amount", "0")))
+                        .build());
+                response.put("resultCode", 0);
+                response.put("message", "OK (payment was cancelled — manual refund required)");
+                return ResponseEntity.ok(response);
             }
         }
 
@@ -156,20 +148,32 @@ public class MoMoCallbackController {
             return ResponseEntity.ok(response);
         }
 
-        // 5. Store gateway response code on payment (preserves failure codes; success =
-        // "0" for MoMo)
+        // 5. Store gateway response code on payment
         payment.setVnpResponseCode(String.valueOf(resultCode));
         payment.setVnpBankCode(params.getOrDefault("payType", "MOMO"));
 
-        // 6. Create transaction record (success only — transactions are immutable
-        // ledger entries)
+        // 6. Create transaction record (success only)
         if (success) {
+            // Bug #2 fix: Validate amount khớp → chống hacker trả ít hơn
+            BigDecimal gatewayAmount = new BigDecimal(params.getOrDefault("amount", "0"));
+            if (gatewayAmount.compareTo(payment.getAmountPaid()) != 0) {
+                log.error("MOMO AMOUNT MISMATCH: gateway={} vs db={} for orderId={}",
+                        gatewayAmount, payment.getAmountPaid(), orderId);
+                payment.setStatus(PaymentStatus.FAILED);
+                payment.setErrorMessage("Amount mismatch: expected " + payment.getAmountPaid()
+                        + " but MoMo returned " + gatewayAmount);
+                paymentRepository.save(payment);
+                response.put("resultCode", 0);
+                response.put("message", "OK (amount mismatch — payment rejected)");
+                return ResponseEntity.ok(response);
+            }
+
             transactionRepository.save(TransactionEntity.builder()
                     .payment(payment)
                     .vnpTxnRef(params.get("orderId"))
                     .vnpTransactionNo(params.get("transId"))
                     .type(TransactionType.PAYMENT)
-                    .amount(new BigDecimal(params.getOrDefault("amount", "0")))
+                    .amount(gatewayAmount)
                     .build());
         }
 
@@ -180,10 +184,10 @@ public class MoMoCallbackController {
             payment.setTransactionId(params.get("transId"));
             paymentRepository.save(payment);
 
-            // 8. Update order status — guard: skip if already PAID or CANCELED (Bug #2 +
-            // Bug #5)
+            // 8. Update order status — guard against already PAID/CANCELED/REFUNDED
             var order = payment.getOrder();
-            if (order.getStatus() != OrderStatus.PAID && order.getStatus() != OrderStatus.CANCELED) {
+            if (order.getStatus() != OrderStatus.PAID && order.getStatus() != OrderStatus.CANCELED
+                    && order.getStatus() != OrderStatus.REFUNDED) {
                 OrderStatus previousStatus = order.getStatus();
                 order.setStatus(OrderStatus.PAID);
                 orderRepository.save(order);
@@ -223,7 +227,7 @@ public class MoMoCallbackController {
      * Sau khi xử lý xong → redirect tới frontend.
      */
     @GetMapping("/return")
-    @Operation(summary = "MoMo return redirect", description = "MoMo redirects the user here after payment. Updates DB as fallback and redirects to frontend.")
+    @Operation(summary = "MoMo return redirect", description = "MoMo redirects the user here after payment. Updates DB as fallback and redirects to frontend. Permission: Public return endpoint.")
     @Transactional
     public ResponseEntity<Void> handleReturn(@RequestParam Map<String, String> params) {
         log.info("MoMo return redirect received: {}", params);
@@ -237,8 +241,7 @@ public class MoMoCallbackController {
             try {
                 String extraData = params.get("extraData");
                 String decoded = new String(Base64.getDecoder().decode(extraData), StandardCharsets.UTF_8);
-                String orderIdStr = decoded.split("\"orderId\"\\s*:\\s*\"")[1].split("\"")[0];
-                UUID orderId = UUID.fromString(orderIdStr);
+                UUID orderId = parseOrderIdFromExtraData(extraData);
 
                 List<PaymentEntity> payments = paymentRepository.findByOrder_IdOrderByPaymentDateDesc(orderId);
                 PaymentEntity payment = payments.stream()
@@ -312,9 +315,10 @@ public class MoMoCallbackController {
                         payment.setTransactionId(momoTransId);
                         paymentRepository.save(payment);
 
-                        // Bug #2 + Bug #5: guard — do NOT override PAID or CANCELED order
+                        // Bug #2 + Bug #5: guard — do NOT override PAID, CANCELED or REFUNDED order
                         var order = payment.getOrder();
-                        if (order.getStatus() != OrderStatus.PAID && order.getStatus() != OrderStatus.CANCELED) {
+                        if (order.getStatus() != OrderStatus.PAID && order.getStatus() != OrderStatus.CANCELED
+                                && order.getStatus() != OrderStatus.REFUNDED) {
                             OrderStatus previousStatus = order.getStatus();
                             order.setStatus(OrderStatus.PAID);
                             orderRepository.save(order);
@@ -340,8 +344,7 @@ public class MoMoCallbackController {
             try {
                 String extraData = params.get("extraData");
                 String decoded = new String(Base64.getDecoder().decode(extraData), StandardCharsets.UTF_8);
-                String orderIdStr = decoded.split("\"orderId\"\\s*:\\s*\"")[1].split("\"")[0];
-                UUID orderId = UUID.fromString(orderIdStr);
+                UUID orderId = parseOrderIdFromExtraData(extraData);
 
                 paymentRepository.findByOrder_IdOrderByPaymentDateDesc(orderId).stream()
                         .filter(p -> p.getStatus() == PaymentStatus.PENDING

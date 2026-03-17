@@ -20,7 +20,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/accounts")
+@RequestMapping("/api/v1/accounts")
 @RequiredArgsConstructor
 public class AccountController {
 
@@ -111,7 +111,7 @@ public class AccountController {
     }
 
 
-    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('CUSTOMER') or hasRole('ADMIN')")
     @PutMapping("/user/{id}")
     public ResponseEntity<ApiResponse<AccountResponseForUserDTO>> updateUser(
             HttpServletRequest request,

@@ -1,6 +1,7 @@
 package fsoft.franchise.service;
 
 import fsoft.franchise.dto.payments.OrderTrackingTimelineDTO;
+import fsoft.franchise.dto.payments.UpdateOrderStatusResponse;
 import fsoft.franchise.enums.OrderStatus;
 
 import java.util.UUID;
@@ -22,8 +23,11 @@ public interface OrderTrackingService {
     /**
      * Cập nhật trạng thái đơn hàng trong DB + push real-time notification.
      * Validate luồng trạng thái hợp lệ (PAID→PREPARING→READY→COMPLETED).
+     * Chỉ ADMIN và MANAGER được gọi.
+     *
+     * @return Thông tin đơn hàng sau khi cập nhật (orderId, status, lastUpdated)
      */
-    void updateOrderStatus(UUID orderId, OrderStatus newStatus, UUID updatedBy);
+    UpdateOrderStatusResponse updateOrderStatus(UUID orderId, OrderStatus newStatus, UUID updatedBy);
 
     /**
      * Lấy timeline tracking của đơn hàng — hiển thị cho khách hàng.

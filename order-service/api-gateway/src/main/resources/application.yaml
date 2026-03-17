@@ -11,29 +11,32 @@ spring:
       globalcors:
         cors-configurations:
           '[/**]': # Áp dụng cho tất cả các đường dẫn
-            allowedOrigins:
-              - "http://localhost:5173"
-              - "http://localhost:3000"
-              - "http://localhost:5174"
-              - "http://127.0.0.1:3000"
-            allowedMethods:
-              - GET
-              - POST
-              - PUT
-              - DELETE
-              - PATCH
-              - OPTIONS
+            allowedOriginPatterns:
+              - "http://localhost:[*]"
+              - "http://127.0.0.1:[*]"
+              - "*"
+            allowedMethods: "*"
             allowedHeaders: "*"
             allowCredentials: true
             maxAge: 3600
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_FIRST
       routes:
         # ====================================================
-        # ROUTE DUY NHẤT: ĐẨY TẤT CẢ VỀ ORDER-SERVICE
+        # AUTH-SERVICE ROUTES (Higher priority - more specific paths first)
         # ====================================================
-        - id: all-in-one-order-route
+        - id: auth-service-route
+          uri: lb://AUTH-SERVICE
+          predicates:
+            - Path=/api/v1/auth/**,/api/v1/accounts/**,/api/v1/forget-password/**,/v3/api-docs/**,/swagger-ui/**,/swagger-ui.html
+          
+        # ====================================================
+        # ORDER-SERVICE ROUTES (Catch remaining /api/* requests)
+        # ====================================================
+        - id: order-service-route
           uri: lb://ORDER-SERVICE
           predicates:
-            - Path=/api/** # Bất kỳ request nào bắt đầu bằng /api/ đều về đây
+            - Path=/api/** # Bất kỳ request nào còn lại bắt đầu bằng /api/
 
 eureka:
   instance:
@@ -41,3 +44,8 @@ eureka:
   client:
     service-url:
       defaultZone: http://localhost:8761/eureka/
+
+app:
+  jwt:
+    # Keep in sync with auth-service/order-service JWT_SECRET
+    secret: ${JWT_SECRET:1xk+i7i6bJnZ/VBmzOMNNTe6bxk/RhMgZSX56Ye0QK4WATtCu64ECFhFpRlUzAOwM0m+IJ77blkfkIoWflfRWA==}

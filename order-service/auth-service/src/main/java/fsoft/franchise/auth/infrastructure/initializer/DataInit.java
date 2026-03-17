@@ -12,145 +12,246 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 
+/**
+ * DataInit for auth-service — seeds accounts with fixed UUIDs that match
+ * product-order-payment service.
+ * This ensures both microservices recognize the same users.
+ * <p>
+ * UUID naming convention (copy pattern from order service):
+ * Role UUIDs: 00000000-0000-0000-0001-xxxxxxxxxxxx
+ * Account UUIDs: 00000000-0000-0000-0002-xxxxxxxxxxxx
+ */
 @Component
 @RequiredArgsConstructor
 public class DataInit implements CommandLineRunner {
 
-    private final AccountRepository accountRepository;
-    private final ProfileRepository profileRepository;
-    private final RoleRepository roleRepository;
-    private final PermissionRepository permissionRepository;
-    private final AccountRoleRepository accountRoleRepository;
-    private final RolePermissionRepository rolePermissionRepository;
-    private final PasswordEncoder passwordEncoder;
+        private final AccountRepository accountRepository;
+        private final ProfileRepository profileRepository;
+        private final RoleRepository roleRepository;
+        private final PermissionRepository permissionRepository;
+        private final AccountRoleRepository accountRoleRepository;
+        private final RolePermissionRepository rolePermissionRepository;
+        private final PasswordEncoder passwordEncoder;
+        private final FranchiseRepository franchiseRepository;
+        private final PosAccountRepository posAccountRepository;
 
-    @Override
-    @Transactional
-    public void run(String... args) throws Exception {
-        if (roleRepository.count() > 0) return;
+        // ─── Fixed UUIDs (must match product-order-payment service) ───────────────
+        // Role UUIDs
+        public static final UUID ROLE_ADMIN_ID = UUID.fromString("00000000-0000-0000-0001-000000000001");
+        public static final UUID ROLE_MANAGER_ID = UUID.fromString("00000000-0000-0000-0001-000000000002");
+        public static final UUID ROLE_CUSTOMER_ID = UUID.fromString("00000000-0000-0000-0001-000000000003");
+        public static final UUID ROLE_POS_ID = UUID.fromString("00000000-0000-0000-0001-000000000004");
 
-        // ===== 1. PERMISSIONS =====
-        PermissionEntity pProductRead   = PermissionEntity.builder().module("Product").code("product:read").build();
-        PermissionEntity pProductWrite  = PermissionEntity.builder().module("Product").code("product:write").build();
-        PermissionEntity pProductDelete = PermissionEntity.builder().module("Product").code("product:delete").build();
-        PermissionEntity pOrderRead     = PermissionEntity.builder().module("Order").code("order:read").build();
-        PermissionEntity pOrderWrite    = PermissionEntity.builder().module("Order").code("order:write").build();
-        PermissionEntity pOrderDelete   = PermissionEntity.builder().module("Order").code("order:delete").build();
-        PermissionEntity pAccountRead   = PermissionEntity.builder().module("Account").code("account:read").build();
-        PermissionEntity pAccountWrite  = PermissionEntity.builder().module("Account").code("account:write").build();
-        PermissionEntity pAccountDelete = PermissionEntity.builder().module("Account").code("account:delete").build();
-        PermissionEntity pReportView    = PermissionEntity.builder().module("Report").code("report:view").build();
-        permissionRepository.saveAll(List.of(
-                pProductRead, pProductWrite, pProductDelete,
-                pOrderRead, pOrderWrite, pOrderDelete,
-                pAccountRead, pAccountWrite, pAccountDelete,
-                pReportView
-        ));
+        // Account UUIDs
+        public static final UUID ACC_ADMIN_ID = UUID.fromString("00000000-0000-0000-0002-000000000001");
+        public static final UUID ACC_MANAGER_HCM1_ID = UUID.fromString("00000000-0000-0000-0002-000000000002");
+        public static final UUID ACC_MANAGER_HCM2_ID = UUID.fromString("00000000-0000-0000-0002-000000000003");
+        public static final UUID ACC_CUSTOMER_1_ID = UUID.fromString("00000000-0000-0000-0002-000000000004");
+        public static final UUID ACC_CUSTOMER_2_ID = UUID.fromString("00000000-0000-0000-0002-000000000005");
+        public static final UUID ACC_CUSTOMER_3_ID = UUID.fromString("00000000-0000-0000-0002-000000000006");
+        public static final UUID ACC_CUSTOMER_4_ID = UUID.fromString("00000000-0000-0000-0002-000000000007");
+        public static final UUID ACC_POS_ID = UUID.fromString("00000000-0000-0000-0002-000000000008");
 
-        // ===== 2. ROLES =====
-        RoleEntity adminRole   = RoleEntity.builder().code("ADMIN").name("Quản trị viên").description("Toàn quyền hệ thống").build();
-        RoleEntity managerRole = RoleEntity.builder().code("MANAGER").name("Quản lý").description("Quản lý đơn hàng và sản phẩm").build();
-        RoleEntity userRole    = RoleEntity.builder().code("USER").name("Người dùng").description("Quyền xem cơ bản").build();
-        roleRepository.saveAll(List.of(adminRole, managerRole, userRole));
+        // Franchise UUIDs (must match STORE_1_ID, STORE_2_ID in order service)
+        public static final UUID FRANCHISE_HCM1_ID = UUID.fromString("00000000-0000-0000-0012-000000000001");
+        public static final UUID FRANCHISE_HCM2_ID = UUID.fromString("00000000-0000-0000-0012-000000000002");
 
-        // ===== 3. ROLE - PERMISSION =====
-        // ADMIN: toàn quyền
-        rolePermissionRepository.saveAll(List.of(
-                RolePermissionEntity.builder().role(adminRole).permission(pProductRead).build(),
-                RolePermissionEntity.builder().role(adminRole).permission(pProductWrite).build(),
-                RolePermissionEntity.builder().role(adminRole).permission(pProductDelete).build(),
-                RolePermissionEntity.builder().role(adminRole).permission(pOrderRead).build(),
-                RolePermissionEntity.builder().role(adminRole).permission(pOrderWrite).build(),
-                RolePermissionEntity.builder().role(adminRole).permission(pOrderDelete).build(),
-                RolePermissionEntity.builder().role(adminRole).permission(pAccountRead).build(),
-                RolePermissionEntity.builder().role(adminRole).permission(pAccountWrite).build(),
-                RolePermissionEntity.builder().role(adminRole).permission(pAccountDelete).build(),
-                RolePermissionEntity.builder().role(adminRole).permission(pReportView).build()
-        ));
-        // MANAGER: quản lý product + order + xem report
-        rolePermissionRepository.saveAll(List.of(
-                RolePermissionEntity.builder().role(managerRole).permission(pProductRead).build(),
-                RolePermissionEntity.builder().role(managerRole).permission(pProductWrite).build(),
-                RolePermissionEntity.builder().role(managerRole).permission(pOrderRead).build(),
-                RolePermissionEntity.builder().role(managerRole).permission(pOrderWrite).build(),
-                RolePermissionEntity.builder().role(managerRole).permission(pReportView).build()
-        ));
-        // USER: chỉ xem
-        rolePermissionRepository.saveAll(List.of(
-                RolePermissionEntity.builder().role(userRole).permission(pProductRead).build(),
-                RolePermissionEntity.builder().role(userRole).permission(pOrderRead).build()
-        ));
+        @Override
+        @Transactional
+        public void run(String... args) {
+                boolean fixedSeedExists =
+                                roleRepository.existsById(ROLE_ADMIN_ID)
+                                                && roleRepository.existsById(ROLE_MANAGER_ID)
+                                                && roleRepository.existsById(ROLE_CUSTOMER_ID)
+                                                && roleRepository.existsById(ROLE_POS_ID)
+                                                && accountRepository.existsById(ACC_ADMIN_ID)
+                                                && accountRepository.existsById(ACC_MANAGER_HCM1_ID)
+                                                && accountRepository.existsById(ACC_MANAGER_HCM2_ID)
+                                                && accountRepository.existsById(ACC_CUSTOMER_1_ID)
+                                                && accountRepository.existsById(ACC_CUSTOMER_2_ID)
+                                                && accountRepository.existsById(ACC_CUSTOMER_3_ID)
+                                                && accountRepository.existsById(ACC_CUSTOMER_4_ID)
+                                                && accountRepository.existsById(ACC_POS_ID)
+                                                && franchiseRepository.existsById(FRANCHISE_HCM1_ID);
 
-        // ===== 4. ACCOUNTS + PROFILES =====
-        String defaultPass = passwordEncoder.encode("123");
+                if (fixedSeedExists) {
+                        return;
+                }
 
-        // Helper: tạo account + profile cùng lúc
-        AccountEntity admin    = buildAccount("admin@gmail.com",       "0900000001", defaultPass);
-        AccountEntity manager1 = buildAccount("minh.nguyen@gmail.com", "0900000002", defaultPass);
-        AccountEntity manager2 = buildAccount("lan.tran@gmail.com",    "0900000003", defaultPass);
-        AccountEntity user1    = buildAccount("hung.le@gmail.com",     "0900000004", defaultPass);
-        AccountEntity user2    = buildAccount("hoa.pham@gmail.com",    "0900000005", defaultPass);
-        AccountEntity user3    = buildAccount("tuan.vu@gmail.com",     "0900000006", defaultPass);
-        AccountEntity user4    = buildAccount("mai.dang@gmail.com",    "0900000007", defaultPass);
-        AccountEntity user5    = buildAccount("khoa.bui@gmail.com",    "0900000008", defaultPass);
-        AccountEntity user6    = buildAccount("linh.hoang@gmail.com",  "0900000009", defaultPass, StatusEnum.INACTIVE);
-        AccountEntity user7    = buildAccount("duc.dinh@gmail.com",    "0900000010", defaultPass, StatusEnum.INACTIVE);
-        accountRepository.saveAll(List.of(admin, manager1, manager2, user1, user2, user3, user4, user5, user6, user7));
+                // Existing data may contain random UUIDs from an older seed.
+                // Reset auth seed tables so fixed UUIDs can be applied deterministically.
+                if (roleRepository.count() > 0 || accountRepository.count() > 0) {
+                        posAccountRepository.deleteAllInBatch();
+                        franchiseRepository.deleteAllInBatch();
+                        accountRoleRepository.deleteAllInBatch();
+                        rolePermissionRepository.deleteAllInBatch();
+                        profileRepository.deleteAllInBatch();
+                        accountRepository.deleteAllInBatch();
+                        roleRepository.deleteAllInBatch();
+                        permissionRepository.deleteAllInBatch();
+                }
 
-        // Profiles
-        profileRepository.saveAll(List.of(
-                buildProfile(admin,    "Admin",  "System",  GenderEnum.MALE,   LocalDate.of(1990, 1,  1)),
-                buildProfile(manager1, "Minh",   "Nguyễn",  GenderEnum.MALE,   LocalDate.of(1992, 5, 15)),
-                buildProfile(manager2, "Lan",    "Trần",    GenderEnum.FEMALE, LocalDate.of(1993, 8, 20)),
-                buildProfile(user1,    "Hùng",   "Lê",      GenderEnum.MALE,   LocalDate.of(1995, 3, 10)),
-                buildProfile(user2,    "Hoa",    "Phạm",    GenderEnum.FEMALE, LocalDate.of(1997, 7, 25)),
-                buildProfile(user3,    "Tuấn",   "Vũ",      GenderEnum.MALE,   LocalDate.of(1998, 11, 5)),
-                buildProfile(user4,    "Mai",    "Đặng",    GenderEnum.FEMALE, LocalDate.of(1999, 2, 14)),
-                buildProfile(user5,    "Khoa",   "Bùi",     GenderEnum.MALE,   LocalDate.of(2000, 6, 30)),
-                buildProfile(user6,    "Linh",   "Hoàng",   GenderEnum.FEMALE, LocalDate.of(2001, 9, 18)),
-                buildProfile(user7,    "Đức",    "Đinh",    GenderEnum.MALE,   LocalDate.of(2002, 12, 3))
-        ));
+                // ===== 1. PERMISSIONS =====
+                PermissionEntity pProductRead = permissionRepository
+                                .save(PermissionEntity.builder().module("Product").code("product:read").build());
+                PermissionEntity pProductWrite = permissionRepository
+                                .save(PermissionEntity.builder().module("Product").code("product:write").build());
+                PermissionEntity pProductDelete = permissionRepository
+                                .save(PermissionEntity.builder().module("Product").code("product:delete").build());
+                PermissionEntity pOrderRead = permissionRepository
+                                .save(PermissionEntity.builder().module("Order").code("order:read").build());
+                PermissionEntity pOrderWrite = permissionRepository
+                                .save(PermissionEntity.builder().module("Order").code("order:write").build());
+                PermissionEntity pOrderDelete = permissionRepository
+                                .save(PermissionEntity.builder().module("Order").code("order:delete").build());
+                PermissionEntity pAccountRead = permissionRepository
+                                .save(PermissionEntity.builder().module("Account").code("account:read").build());
+                PermissionEntity pAccountWrite = permissionRepository
+                                .save(PermissionEntity.builder().module("Account").code("account:write").build());
+                PermissionEntity pAccountDelete = permissionRepository
+                                .save(PermissionEntity.builder().module("Account").code("account:delete").build());
+                PermissionEntity pReportView = permissionRepository
+                                .save(PermissionEntity.builder().module("Report").code("report:view").build());
 
-        // ===== 5. ACCOUNT - ROLE =====
-        accountRoleRepository.saveAll(List.of(
-                AccountRoleEntity.builder().account(admin).role(adminRole).build(),
-                AccountRoleEntity.builder().account(manager1).role(managerRole).build(),
-                AccountRoleEntity.builder().account(manager2).role(managerRole).build(),
-                AccountRoleEntity.builder().account(user1).role(userRole).build(),
-                AccountRoleEntity.builder().account(user2).role(userRole).build(),
-                AccountRoleEntity.builder().account(user3).role(userRole).build(),
-                AccountRoleEntity.builder().account(user4).role(userRole).build(),
-                AccountRoleEntity.builder().account(user5).role(userRole).build(),
-                AccountRoleEntity.builder().account(user6).role(userRole).build(),
-                AccountRoleEntity.builder().account(user7).role(userRole).build()
-        ));
+                // ===== 2. ROLES =====
+                RoleEntity adminRole = roleRepository.save(RoleEntity.builder().id(ROLE_ADMIN_ID).code("ADMIN")
+                                .name("Quản trị viên Franchise").description("Toàn quyền hệ thống franchise").build());
+                RoleEntity managerRole = roleRepository.save(RoleEntity.builder().id(ROLE_MANAGER_ID).code("MANAGER")
+                                .name("Quản lý cửa hàng").description("Quản lý đơn hàng và sản phẩm tại cửa hàng").build());
+                RoleEntity userRole = roleRepository.save(RoleEntity.builder().id(ROLE_CUSTOMER_ID).code("CUSTOMER")
+                                .name("Khách hàng").description("Quyền mua hàng và xem lịch sử đơn").build());
+                RoleEntity posRole = roleRepository.save(RoleEntity.builder().id(ROLE_POS_ID).code("POS")
+                                .name("POS System").description("Point of Sale terminal").build());
 
-        System.out.println(">>> DataInit: khởi tạo thành công 10 permissions, 3 roles, 10 accounts");
-    }
+                // ===== 3. ROLE - PERMISSION =====
+                // ADMIN: toàn quyền
+                rolePermissionRepository.saveAll(List.of(
+                                RolePermissionEntity.builder().role(adminRole).permission(pProductRead).build(),
+                                RolePermissionEntity.builder().role(adminRole).permission(pProductWrite).build(),
+                                RolePermissionEntity.builder().role(adminRole).permission(pProductDelete).build(),
+                                RolePermissionEntity.builder().role(adminRole).permission(pOrderRead).build(),
+                                RolePermissionEntity.builder().role(adminRole).permission(pOrderWrite).build(),
+                                RolePermissionEntity.builder().role(adminRole).permission(pOrderDelete).build(),
+                                RolePermissionEntity.builder().role(adminRole).permission(pAccountRead).build(),
+                                RolePermissionEntity.builder().role(adminRole).permission(pAccountWrite).build(),
+                                RolePermissionEntity.builder().role(adminRole).permission(pAccountDelete).build(),
+                                RolePermissionEntity.builder().role(adminRole).permission(pReportView).build()));
+                // MANAGER: quản lý product + order + xem report
+                rolePermissionRepository.saveAll(List.of(
+                                RolePermissionEntity.builder().role(managerRole).permission(pProductRead).build(),
+                                RolePermissionEntity.builder().role(managerRole).permission(pProductWrite).build(),
+                                RolePermissionEntity.builder().role(managerRole).permission(pOrderRead).build(),
+                                RolePermissionEntity.builder().role(managerRole).permission(pOrderWrite).build(),
+                                RolePermissionEntity.builder().role(managerRole).permission(pReportView).build()));
+                // USER: xem và tạo đơn hàng
+                rolePermissionRepository.saveAll(List.of(
+                                RolePermissionEntity.builder().role(userRole).permission(pProductRead).build(),
+                                RolePermissionEntity.builder().role(userRole).permission(pOrderRead).build(),
+                                RolePermissionEntity.builder().role(userRole).permission(pOrderWrite).build()));
+                // POS: quản lý đơn hàng và xem report
+                rolePermissionRepository.saveAll(List.of(
+                                RolePermissionEntity.builder().role(posRole).permission(pProductRead).build(),
+                                RolePermissionEntity.builder().role(posRole).permission(pOrderRead).build(),
+                                RolePermissionEntity.builder().role(posRole).permission(pOrderWrite).build(),
+                                RolePermissionEntity.builder().role(posRole).permission(pReportView).build()));
 
-    // ===== HELPERS =====
-    private AccountEntity buildAccount(String email, String phone, String password) {
-        return buildAccount(email, phone, password, StatusEnum.ACTIVE);
-    }
+                // ===== 4. FRANCHISES =====
+                FranchiseEntity hcm1 = franchiseRepository.save(FranchiseEntity.builder()
+                                .id(FRANCHISE_HCM1_ID).name("E-Coffee HCM District 1").status(StatusEnum.ACTIVE).build());
+                FranchiseEntity hcm2 = franchiseRepository.save(FranchiseEntity.builder()
+                                .id(FRANCHISE_HCM2_ID).name("E-Coffee HCM District 7").status(StatusEnum.ACTIVE).build());
 
-    private AccountEntity buildAccount(String email, String phone, String password, StatusEnum status) {
-        return AccountEntity.builder()
-                .email(email)
-                .phoneNumber(phone)
-                .password(password)
-                .status(status)
-                .build();
-    }
+                // ===== 5. ACCOUNTS + PROFILES (with fixed UUIDs matching
+                // product-order-payment) =====
+                String defaultPass = passwordEncoder.encode("Password@123");
 
-    private ProfileEntity buildProfile(AccountEntity account, String firstName, String lastName,
-                                       GenderEnum gender, LocalDate birthDate) {
-        return ProfileEntity.builder()
-                .account(account)
-                .firstName(firstName)
-                .lastName(lastName)
-                .gender(gender)
-                .birthDate(birthDate)
-                .build();
-    }
+                // Admin account
+                AccountEntity admin = buildAccount(ACC_ADMIN_ID, "admin@capitalfranchise.vn", "0900000001",
+                                defaultPass);
+                // Manager accounts
+                AccountEntity manager1 = buildAccount(ACC_MANAGER_HCM1_ID, "manager.hcm1@capitalfranchise.vn",
+                                "0900000002", defaultPass);
+                AccountEntity manager2 = buildAccount(ACC_MANAGER_HCM2_ID, "manager.hcm2@capitalfranchise.vn",
+                                "0900000003", defaultPass);
+                // Customer accounts (matching product-order-payment)
+                AccountEntity customer1 = buildAccount(ACC_CUSTOMER_1_ID, "alice@gmail.com", "0911000001", defaultPass);
+                AccountEntity customer2 = buildAccount(ACC_CUSTOMER_2_ID, "bob@gmail.com", "0911000002", defaultPass);
+                AccountEntity customer3 = buildAccount(ACC_CUSTOMER_3_ID, "charlie@gmail.com", "0911000003",
+                                defaultPass);
+                AccountEntity customer4 = buildAccount(ACC_CUSTOMER_4_ID, "diana@gmail.com", "0911000004", defaultPass);
+                AccountEntity pos = buildAccount(ACC_POS_ID, "pos.hcm1@capitalfranchise.vn", "0900000099", defaultPass);
+
+                // Save accounts and keep managed references for later relations.
+                admin = accountRepository.save(admin);
+                manager1 = accountRepository.save(manager1);
+                manager2 = accountRepository.save(manager2);
+                customer1 = accountRepository.save(customer1);
+                customer2 = accountRepository.save(customer2);
+                customer3 = accountRepository.save(customer3);
+                customer4 = accountRepository.save(customer4);
+                pos = accountRepository.save(pos);
+
+                // Profiles
+                profileRepository.saveAll(List.of(
+                                buildProfile(admin, "Capital", "Admin", GenderEnum.MALE, LocalDate.of(1985, 1, 15)),
+                                buildProfile(manager1, "Nguyen", "Minh Quan", GenderEnum.MALE,
+                                                LocalDate.of(1990, 5, 20)),
+                                buildProfile(manager2, "Tran", "Thanh Huong", GenderEnum.FEMALE,
+                                                LocalDate.of(1992, 8, 10)),
+                                buildProfile(customer1, "Alice", "Nguyen", GenderEnum.FEMALE,
+                                                LocalDate.of(1998, 3, 12)),
+                                buildProfile(customer2, "Bob", "Tran", GenderEnum.MALE, LocalDate.of(2000, 7, 25)),
+                                buildProfile(customer3, "Charlie", "Le", GenderEnum.MALE, LocalDate.of(1995, 11, 5)),
+                                buildProfile(customer4, "Diana", "Pham", GenderEnum.FEMALE, LocalDate.of(1997, 6, 18)),
+                                buildProfile(pos, "System", "POS", GenderEnum.MALE, LocalDate.of(2024, 1, 1))));
+
+                // ===== 6. ACCOUNT - ROLE =====
+                accountRoleRepository.saveAll(List.of(
+                                AccountRoleEntity.builder().account(admin).role(adminRole).build(),
+                                AccountRoleEntity.builder().account(manager1).role(managerRole).build(),
+                                AccountRoleEntity.builder().account(manager2).role(managerRole).build(),
+                                AccountRoleEntity.builder().account(customer1).role(userRole).build(),
+                                AccountRoleEntity.builder().account(customer2).role(userRole).build(),
+                                AccountRoleEntity.builder().account(customer3).role(userRole).build(),
+                                AccountRoleEntity.builder().account(customer4).role(userRole).build(),
+                                AccountRoleEntity.builder().account(pos).role(posRole).build()));
+
+                // ===== 7. POS - FRANCHISE LINK =====
+                posAccountRepository.saveAll(List.of(
+                                PosAccountEntity.builder().account(pos).franchise(hcm1).isActive(true).build(),
+                                PosAccountEntity.builder().account(manager1).franchise(hcm1).isActive(true).build(),
+                                PosAccountEntity.builder().account(manager2).franchise(hcm2).isActive(true).build()
+                ));
+
+                System.out.println(
+                                ">>> DataInit: khởi tạo thành công 10 permissions, 4 roles, 2 franchises, 8 accounts (including POS and Managers linked to franchises)");
+        }
+
+        // ===== HELPERS =====
+        private AccountEntity buildAccount(UUID id, String email, String phone, String password) {
+                return buildAccount(id, email, phone, password, StatusEnum.ACTIVE);
+        }
+
+        private AccountEntity buildAccount(UUID id, String email, String phone, String password, StatusEnum status) {
+                return AccountEntity.builder()
+                                .id(id)
+                                .email(email)
+                                .phoneNumber(phone)
+                                .password(password)
+                                .status(status)
+                                .build();
+        }
+
+        private ProfileEntity buildProfile(AccountEntity account, String firstName, String lastName,
+                        GenderEnum gender, LocalDate birthDate) {
+                return ProfileEntity.builder()
+                                .account(account)
+                                .firstName(firstName)
+                                .lastName(lastName)
+                                .gender(gender)
+                                .birthDate(birthDate)
+                                .build();
+        }
 }

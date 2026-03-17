@@ -14,6 +14,7 @@ import fsoft.franchise.repository.PaymentRepository;
 import fsoft.franchise.repository.TransactionRepository;
 import fsoft.franchise.service.MoMoPaymentService;
 import fsoft.franchise.service.PaymentService;
+import fsoft.franchise.service.PaymentMethodService;
 import fsoft.franchise.service.VNPayService;
 import fsoft.franchise.service.OrderTrackingService;
 import jakarta.transaction.Transactional;
@@ -48,9 +49,9 @@ public class PaymentServiceImpl implements PaymentService {
         private final OrderRepository orderRepository;
         // Push real-time tracking khi VNPay callback thanh toán thành công
         private final OrderTrackingService orderTrackingService;
+        private final PaymentMethodService paymentMethodService;
 
-        public PaymentListResponse getPayments(PaymentFilterRequest filter,
-                        UUID currentUserId, String role) {
+        public PaymentListResponse getPayments(PaymentFilterRequest filter, UUID currentUserId, String role) {
 
                 // 1. Clamp page size, 1-based page for API
                 int size = Math.min(Math.max(1, filter.getSize()), MAX_PAGE_SIZE);
@@ -70,28 +71,42 @@ public class PaymentServiceImpl implements PaymentService {
                 }
 
                 // 3. Parse optional UUID filters
-                UUID orderIdFilter = null;
-                if (filter.getOrderId() != null && !filter.getOrderId().isBlank()) {
-                        try {
-                                orderIdFilter = UUID.fromString(filter.getOrderId().trim());
-                        } catch (IllegalArgumentException ignored) {
-                        }
-                }
+                UUID storeIdFilter = parseUuid(filter.getStoreId());
+                UUID orderIdFilter = parseUuid(filter.getOrderId());
+                UUID customerIdFilter = parseUuid(filter.getCustomerId());
 
                 // 4. Parse optional status filter (PaymentStatus enum)
                 PaymentStatus statusFilter = parsePaymentStatus(filter.getStatus());
 
-                // 5. Branch logic by role (FRANCHISE_ADMIN / STORE_MANAGER use admin filters)
+                // 5. Branch logic by role (ADMIN / MANAGER use admin filters)
                 Page<PaymentEntity> page;
-                boolean isAdmin = "FRANCHISE_ADMIN".equalsIgnoreCase(role) || "STORE_MANAGER".equalsIgnoreCase(role);
+                BigDecimal totalAmount;
+                boolean isAdmin = "ADMIN".equalsIgnoreCase(role) || "MANAGER".equalsIgnoreCase(role);
+
+                LocalDateTime fromLocalDate = fromDate != null
+                                ? LocalDateTime.ofInstant(fromDate, ZoneId.systemDefault())
+                                : null;
+                LocalDateTime toLocalDate = toDate != null ? LocalDateTime.ofInstant(toDate, ZoneId.systemDefault())
+                                : null;
+
                 if (isAdmin) {
                         page = paymentRepository.findByAdminFilters(
-                                        orderIdFilter, filter.getCustomerId(), filter.getEmail(),
-                                        statusFilter, fromDate, toDate, pageable);
+                                        storeIdFilter,
+                                        orderIdFilter, customerIdFilter,
+                                        statusFilter, fromLocalDate, toLocalDate, pageable);
+                        totalAmount = paymentRepository.sumAmountByAdminFilters(
+                                        storeIdFilter,
+                                        orderIdFilter, customerIdFilter,
+                                        statusFilter, fromLocalDate, toLocalDate);
                 } else {
                         page = paymentRepository.findByCustomerFilters(
+                                        storeIdFilter,
                                         currentUserId, orderIdFilter, statusFilter,
-                                        fromDate, toDate, pageable);
+                                        fromLocalDate, toLocalDate, pageable);
+                        totalAmount = paymentRepository.sumAmountByCustomerFilters(
+                                        storeIdFilter,
+                                        currentUserId, orderIdFilter, statusFilter,
+                                        fromLocalDate, toLocalDate);
                 }
 
                 // 6. Map entity to DTO — resolve transaction details from latest transaction
@@ -101,8 +116,9 @@ public class PaymentServiceImpl implements PaymentService {
 
                 return PaymentListResponse.builder()
                                 .data(records)
+                                .totalAmount(totalAmount != null ? totalAmount : BigDecimal.ZERO)
                                 .pagination(PaymentListResponse.PaginationInfo.builder()
-                                                .currentPage(page.getNumber())
+                                                .currentPage(page.getNumber() + 1)
                                                 .totalPages(page.getTotalPages())
                                                 .totalElements(page.getTotalElements())
                                                 .pageSize(page.getSize())
@@ -110,133 +126,273 @@ public class PaymentServiceImpl implements PaymentService {
                                 .build();
         }
 
+        // ── Thanh toán đơn hàng (moved from OrderServiceImpl) ─────────────────────
+
         @Override
         @Transactional
-        public PaymentResponse createPayment(CreatePaymentRequest request, String ipAddress) {
-
-                // 1. Validate order tồn tại
-                OrderEntity order = orderRepository.findById(request.orderId())
-                                .orElseThrow(() -> new ApiException(OrderErrorCode.ORDER_NOT_FOUND, "Order not found"));
-
-                // 1.1. Nếu order chưa thanh toán, chuyển trạng thái sang PROCESSING để thể hiện
-                // đang trong quá trình thanh toán online
-                if (order.getStatus() != OrderStatus.PAID && order.getStatus() != OrderStatus.PROCESSING) {
-                        order.setStatus(OrderStatus.PROCESSING);
-                        orderRepository.save(order);
+        public PaymentResponse processPayment(UUID orderId, PaymentRequest request, UUID customerId, String ipAddress) {
+                // 1. Tìm order
+                OrderEntity order = orderRepository.findById(orderId)
+                                .orElseThrow(() -> new ApiException(OrderErrorCode.ORDER_NOT_FOUND));
+                // 2. Validate owner
+                if (!order.getCustomerId().equals(customerId)) {
+                        throw new ApiException(OrderErrorCode.ORDER_NOT_OWNED);
                 }
 
-                // 2. Check duplicate Pending payment for this order
-                PaymentEntity response = paymentRepository
-                                .findByOrder_IdAndStatus(request.orderId(), PaymentStatus.PENDING);
-                if (response != null) {
+                // 3. Kiểm tra trạng thái đơn hàng
+                if (order.getStatus() == OrderStatus.PAID) {
+                        throw new ApiException(OrderErrorCode.ORDER_ALREADY_PAID);
+                }
+                if (order.getStatus() != OrderStatus.PENDING && order.getStatus() != OrderStatus.PROCESSING) {
+                        throw new ApiException(OrderErrorCode.INVALID_ORDER_STATUS);
+                }
+
+                // 4. Tính tổng tiền đơn hàng
+                BigDecimal orderTotal = order.getOrderItems().stream()
+                                .map(item -> item.getUnitPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
+                                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                // 5. Validate số tiền thanh toán
+                if (request.amount().compareTo(orderTotal) != 0) {
+                        throw new ApiException(PaymentErrorCode.PAYMENT_AMOUNT_MISMATCH);
+                }
+
+                // 6. Idempotency: nếu đã có payment PENDING cho order này → tái sử dụng
+                PaymentEntity payment = paymentRepository
+                                .findFirstByOrder_IdAndStatus(orderId, PaymentStatus.PENDING)
+                                .orElse(null);
+
+                // Bug #6: Nếu user đổi sang payment method khác → FAIL payment cũ, tạo mới
+                if (payment != null && payment.getPaymentMethod() != request.paymentMethod()) {
+                        payment.setStatus(PaymentStatus.FAILED);
+                        payment.setErrorMessage("Replaced by new payment method: " + request.paymentMethod());
+                        paymentRepository.save(payment);
+                        payment = null;
+                }
+
+                // Bug #6 (same-method): nếu đã có PENDING payment cùng method VÀ đã có URL
+                // → trả URL cũ, KHÔNG tạo URL mới (tránh nhiều URL hợp lệ trên gateway)
+                if (payment != null && payment.getPaymentUrl() != null
+                                && !payment.getPaymentUrl().isBlank()) {
                         return new PaymentResponse(
-                                        response.getId(), // paymentId
-                                        order.getId(), // orderId
-                                        response.getPaymentMethod().toString(), // paymentMethod
-                                        response.getAmountPaid(), // amountPaid (stored in vnd)
-                                        PaymentStatus.PENDING.toString(), // paymentStatus
-                                        OrderStatus.PROCESSING, // orderStatus
-                                        response.getPaymentUrl(), // paymentUrl
-                                        LocalDateTime.now().plusMinutes(15), // expiredAt
+                                        payment.getId(),
+                                        order.getId(),
+                                        payment.getPaymentMethod().toString(),
+                                        payment.getAmountPaid(),
+                                        payment.getStatus().toString(),
+                                        order.getStatus(),
+                                        payment.getPaymentUrl(),
+                                        payment.getExpiredAt(),
                                         LocalDateTime.now());
                 }
 
-                // 3. Generate payment URL based on payment method
-                String paymentUrl = null;
-                if (request.paymentMethod() == PaymentMethod.MOMO) {
-                        paymentUrl = moMoPaymentService.createPaymentLink(
-                                        order.getId(),
-                                        request.amount().longValue(),
-                                        "Payment for order " + order.getId(),
-                                        request.resolvedMomoRequestType());
-                } else if (request.paymentMethod() == PaymentMethod.VNPAY) {
-                        // VNPay
-                        paymentUrl = vnPayService.createPaymentUrl(
-                                        order.getId().toString(),
-                                        request.amount().longValue(),
-                                        request.transactionId(),
-                                        ipAddress);
+                if (payment == null) {
+                        payment = new PaymentEntity();
+                        payment.setOrder(order);
+                        payment.setPaymentMethod(request.paymentMethod());
+                        payment.setAmountPaid(request.amount());
+                        payment.setStatus(PaymentStatus.PENDING);
+                        payment.setTransactionId(UUID.randomUUID().toString());
+                        paymentRepository.save(payment);
                 }
-                // If CASH, paymentUrl remains null
 
-                // 4. Tạo PaymentEntity (Transaction sẽ chỉ được tạo sau khi gateway callback
-                // thành công)
-                PaymentEntity payment = PaymentEntity.builder()
-                                .order(order)
-                                .paymentMethod(request.paymentMethod())
-                                .amountPaid(request.amount())
-                                .status(PaymentStatus.PENDING)
-                                .transactionId(request.transactionId())
-                                .paymentUrl(paymentUrl)
-                                .expiredAt(LocalDateTime.now().plus(15, ChronoUnit.MINUTES))
-                                .build();
+                // Bug #1 fix: truyền amount gốc (VNĐ). VNPayServiceImpl tự ×100 nội bộ.
+                // MoMo nhận VNĐ nguyên gốc (không cần ×100).
+                long amountRaw = request.amount().longValue();
+
+                // 7a. VNPAY → generate VNPay payment URL
+                if (request.paymentMethod() == PaymentMethod.VNPAY) {
+                        String payUrl = vnPayService.createPaymentUrl(
+                                        orderId.toString(),
+                                        amountRaw,
+                                        payment.getTransactionId(),
+                                        ipAddress != null ? ipAddress : "127.0.0.1");
+
+                        order.setStatus(OrderStatus.PROCESSING);
+                        payment.setPaymentUrl(payUrl);
+                        orderRepository.save(order);
+                        paymentRepository.save(payment);
+
+                        return new PaymentResponse(
+                                        payment.getId(),
+                                        order.getId(),
+                                        payment.getPaymentMethod().toString(),
+                                        payment.getAmountPaid(),
+                                        payment.getStatus().toString(),
+                                        order.getStatus(),
+                                        payUrl,
+                                        LocalDateTime.now().plusMinutes(15),
+                                        LocalDateTime.now());
+                }
+
+                // 7b. MOMO → validate request type rồi gọi MoMo API
+                if (request.paymentMethod() == PaymentMethod.MOMO) {
+                        MomoRequestType requestType = request.resolvedMomoRequestType();
+                        if (!paymentMethodService.isMomoRequestTypeEnabled(requestType.getMomoCode())) {
+                                throw new ApiException(PaymentErrorCode.INVALID_PAYMENT_METHOD,
+                                                "MoMo request type '" + requestType.getMomoCode()
+                                                                + "' is not enabled in the current environment");
+                        }
+                        String payUrl = moMoPaymentService.createPaymentLink(
+                                        orderId,
+                                        amountRaw,
+                                        "Thanh toan don hang #" + orderId,
+                                        requestType.getMomoCode());
+
+                        order.setStatus(OrderStatus.PROCESSING);
+                        payment.setPaymentUrl(payUrl);
+                        orderRepository.save(order);
+                        paymentRepository.save(payment);
+
+                        return new PaymentResponse(
+                                        payment.getId(),
+                                        order.getId(),
+                                        payment.getPaymentMethod().toString(),
+                                        payment.getAmountPaid(),
+                                        payment.getStatus().toString(),
+                                        order.getStatus(),
+                                        payUrl,
+                                        LocalDateTime.now().plusMinutes(15),
+                                        LocalDateTime.now());
+                }
+
+                // 8. Các phương thức khác (CASH, WALLET...) → Paid ngay
+                order.setStatus(OrderStatus.PAID);
+                payment.setStatus(PaymentStatus.PAID);
+                orderRepository.save(order);
                 paymentRepository.save(payment);
 
+                // Push real-time notification
+                orderTrackingService.sendTrackingUpdate(orderId, OrderStatus.PENDING, OrderStatus.PAID, customerId);
+
                 return new PaymentResponse(
-                                payment.getId(), // paymentId
-                                order.getId(), // orderId
-                                request.paymentMethod().toString(), // paymentMethod
-                                request.amount(), // amountPaid (stored in vnd)
-                                PaymentStatus.PENDING.toString(), // paymentStatus
-                                OrderStatus.PROCESSING, // orderStatus
-                                paymentUrl, // paymentUrl
-                                LocalDateTime.now().plusMinutes(15), // expiredAt
+                                payment.getId(),
+                                order.getId(),
+                                payment.getPaymentMethod().toString(),
+                                payment.getAmountPaid(),
+                                payment.getStatus().toString(),
+                                order.getStatus(),
+                                null,
+                                null,
                                 LocalDateTime.now());
         }
 
         // ── Method 1.5: Xác nhận thanh toán CASH ──────────────────────────────────
 
+//        @Override
+//        @Transactional
+//        public PaymentResponse confirmCashPayment(UUID paymentId, UUID staffId) {
+//
+//                PaymentEntity payment = paymentRepository.findById(paymentId)
+//                                .orElseThrow(() -> new ApiException(PaymentErrorCode.PAYMENT_NOT_FOUND,
+//                                                "Payment not found"));
+//
+//                if (payment.getPaymentMethod() != PaymentMethod.CASH) {
+//                        throw new ApiException(PaymentErrorCode.INVALID_PAYMENT_METHOD,
+//                                        "Can only confirm CASH payments");
+//                }
+//
+//                if (payment.getStatus() == PaymentStatus.PAID) {
+//                        throw new ApiException(PaymentErrorCode.PAYMENT_ALREADY_PAID,
+//                                        "Payment is already marked as PAID");
+//                }
+//
+//                payment.setStatus(PaymentStatus.PAID);
+//                payment.setPaymentDate(LocalDateTime.now());
+//                paymentRepository.save(payment);
+//
+//                if (payment.getOrder() != null) {
+//                        OrderEntity order = payment.getOrder();
+//                        if (order.getStatus() != OrderStatus.PAID
+//                                        && order.getStatus() != OrderStatus.CANCELED
+//                                        && order.getStatus() != OrderStatus.REFUNDED) {
+//                                OrderStatus previousStatus = order.getStatus();
+//                                order.setStatus(OrderStatus.PAID);
+//                                orderRepository.save(order);
+//                                orderTrackingService.sendTrackingUpdate(order.getId(), previousStatus,
+//                                                OrderStatus.PAID, null);
+//                        }
+//                }
+//
+//                // Create Transaction record for cash
+//                TransactionEntity txn = TransactionEntity.builder()
+//                                .payment(payment)
+//                                .vnpTxnRef("CASH-" + paymentId.toString().substring(0, 8))
+//                                .vnpTransactionNo("CASH-" + Instant.now().toEpochMilli())
+//                                .amount(payment.getAmountPaid())
+//                                .type(TransactionType.PAYMENT)
+//                                .build();
+//                transactionRepository.save(txn);
+//
+//                return new PaymentResponse(
+//                                payment.getId(),
+//                                payment.getOrder() != null ? payment.getOrder().getId() : null,
+//                                payment.getPaymentMethod().toString(),
+//                                payment.getAmountPaid(),
+//                                payment.getStatus().toString(),
+//                                payment.getOrder() != null ? payment.getOrder().getStatus() : null,
+//                                payment.getPaymentUrl(),
+//                                payment.getExpiredAt(),
+//                                payment.getPaymentDate());
+//        }
+
+
         @Override
         @Transactional
-        public PaymentResponse confirmCashPayment(UUID paymentId) {
-                PaymentEntity payment = paymentRepository.findById(paymentId)
-                                .orElseThrow(() -> new ApiException(PaymentErrorCode.PAYMENT_NOT_FOUND,
-                                                "Payment not found"));
+        public PaymentResponse createInboundPayment(CreateInboundPaymentRequest request, String ipAddress) {
+                String inboundTxnRef = request.orderId();
 
-                if (payment.getPaymentMethod() != PaymentMethod.CASH) {
-                        throw new ApiException(PaymentErrorCode.INVALID_PAYMENT_METHOD,
-                                        "Can only confirm CASH payments");
-                }
-
-                if (payment.getStatus() == PaymentStatus.PAID) {
-                        throw new ApiException(PaymentErrorCode.PAYMENT_ALREADY_PAID,
-                                        "Payment is already marked as PAID");
-                }
-
-                payment.setStatus(PaymentStatus.PAID);
-                payment.setPaymentDate(LocalDateTime.now());
-                paymentRepository.save(payment);
-
-                if (payment.getOrder() != null) {
-                        OrderEntity order = payment.getOrder();
-                        if (order.getStatus() != OrderStatus.PAID
-                                        && order.getStatus() != OrderStatus.CANCELED) {
-                                OrderStatus previousStatus = order.getStatus();
-                                order.setStatus(OrderStatus.PAID);
-                                orderRepository.save(order);
-                                orderTrackingService.sendTrackingUpdate(order.getId(), previousStatus,
-                                                OrderStatus.PAID, null);
+                // 1) Logic check existing
+                if (inboundTxnRef != null) {
+                        Optional<PaymentEntity> existing = paymentRepository.findByTransactionId(inboundTxnRef);
+                        if (existing.isPresent()) {
+                                PaymentEntity p = existing.get();
+                                return new PaymentResponse(p.getId(), UUID.fromString(p.getTransactionId()),
+                                                p.getPaymentMethod().toString(), p.getAmountPaid(), p.getStatus().toString(),
+                                                null, p.getPaymentUrl(), p.getExpiredAt(), p.getPaymentDate());
                         }
                 }
 
-                // Create Transaction record for cash
-                TransactionEntity txn = TransactionEntity.builder()
-                                .payment(payment)
-                                .vnpTxnRef("CASH-" + paymentId.toString().substring(0, 8))
-                                .vnpTransactionNo("CASH-" + Instant.now().toEpochMilli())
-                                .amount(payment.getAmountPaid())
-                                .type(TransactionType.PAYMENT)
+                // 2) Generate payment URL based on method
+                String paymentUrl = null;
+                if (request.paymentMethod() == PaymentMethod.MOMO) {
+                        paymentUrl = moMoPaymentService.createPaymentLink(
+                                        UUID.fromString(request.orderId()),
+                                        request.amount().longValue(),
+                                        "Payment for order " + request.orderId(),
+                                        request.resolvedMomoRequestType());
+                } else if (request.paymentMethod() == PaymentMethod.VNPAY) {
+                        // VNPay
+                        paymentUrl = vnPayService.createPaymentUrl(
+                                        request.orderId(),
+                                        request.amount().longValue(),
+                                        inboundTxnRef,
+                                        ipAddress);
+                }
+                // If CASH, paymentUrl remains null
+
+                // 3) Persist payment
+                PaymentEntity payment = PaymentEntity.builder()
+                                .order(null)
+                                .transactionId(inboundTxnRef)
+                                .paymentMethod(request.paymentMethod())
+                                .paymentType(PaymentType.INBOUND)
+                                .amountPaid(request.amount())
+                                .status(PaymentStatus.PENDING)
+                                .paymentUrl(paymentUrl)
+                                .expiredAt(LocalDateTime.now().plus(15, ChronoUnit.MINUTES))
+                                .paymentDate(LocalDateTime.now())
                                 .build();
-                transactionRepository.save(txn);
+                paymentRepository.save(payment);
 
                 return new PaymentResponse(
                                 payment.getId(),
-                                payment.getOrder() != null ? payment.getOrder().getId() : null,
+                                UUID.fromString(payment.getTransactionId()), // orderId cua INBOUND
                                 payment.getPaymentMethod().toString(),
                                 payment.getAmountPaid(),
                                 payment.getStatus().toString(),
-                                payment.getOrder() != null ? payment.getOrder().getStatus() : null,
-                                payment.getPaymentUrl(),
+                                null, // no orderStatus for INBOUND
+                                paymentUrl,
                                 payment.getExpiredAt(),
                                 payment.getPaymentDate());
         }
@@ -270,9 +426,9 @@ public class PaymentServiceImpl implements PaymentService {
                                         .build();
                 }
 
-                // 2. Resolve payment by merchant transaction reference (transactionId sent when
-                // creating payment)
-                PaymentEntity payment = paymentRepository.findByTransactionId(vnpTxnRef)
+                // 2. Resolve payment by merchant transaction reference with pessimistic lock
+                // Bug #4: @Lock(PESSIMISTIC_WRITE) prevents concurrent IPN from double-processing
+                PaymentEntity payment = paymentRepository.findByTransactionIdForUpdate(vnpTxnRef)
                                 .orElseThrow(() -> new ApiException(PaymentErrorCode.PAYMENT_NOT_FOUND,
                                                 "Payment not found for transaction ref: " + vnpTxnRef));
 
@@ -281,8 +437,54 @@ public class PaymentServiceImpl implements PaymentService {
                 payment.setVnpResponseCode(responseCode);
                 payment.setVnpBankCode(bankCode);
 
+                // Bug #6 fix: Guard — nếu payment đã FAILED (bị cancel do user đổi method)
+                // hoặc đã PAID (IPN retry) → không xử lý thêm
+                if (payment.getStatus() == PaymentStatus.FAILED) {
+                        log.warn("VNPay IPN for FAILED payment txnRef={} — payment was cancelled. "
+                                        + "Gateway still charged. Manual refund required.", vnpTxnRef);
+                        return WebHookResponse.builder()
+                                        .paymentId(payment.getId())
+                                        .transactionId(vnpTxnRef)
+                                        .orderId(payment.getOrder() != null ? payment.getOrder().getId() : null)
+                                        .status("CANCELLED")
+                                        .processedAt(LocalDateTime.now())
+                                        .build();
+                }
+                if (payment.getStatus() == PaymentStatus.PAID) {
+                        log.info("VNPay IPN duplicate for already-PAID payment txnRef={}", vnpTxnRef);
+                        return WebHookResponse.builder()
+                                        .paymentId(payment.getId())
+                                        .transactionId(vnpTxnRef)
+                                        .orderId(payment.getOrder() != null ? payment.getOrder().getId() : null)
+                                        .status("ALREADY_PAID")
+                                        .processedAt(LocalDateTime.now())
+                                        .build();
+                }
+
                 // 4. Cập nhật PaymentEntity + Order tuỳ theo responseCode
                 if (isSuccess) {
+                        // Bug #2 fix: Validate amount khớp → chống hacker trả ít hơn
+                        if (amountStr != null) {
+                                BigDecimal gatewayAmount = new BigDecimal(amountStr).divide(BigDecimal.valueOf(100));
+                                if (gatewayAmount.compareTo(payment.getAmountPaid()) != 0) {
+                                        log.error("VNPAY AMOUNT MISMATCH: gateway={} vs db={} for txnRef={}",
+                                                        gatewayAmount, payment.getAmountPaid(), vnpTxnRef);
+                                        payment.setStatus(PaymentStatus.FAILED);
+                                        payment.setErrorMessage("Amount mismatch: expected " + payment.getAmountPaid()
+                                                        + " but gateway returned " + gatewayAmount);
+                                        paymentRepository.save(payment);
+                                        return WebHookResponse.builder()
+                                                        .paymentId(payment.getId())
+                                                        .transactionId(vnpTxnRef)
+                                                        .orderId(payment.getOrder() != null
+                                                                        ? payment.getOrder().getId()
+                                                                        : null)
+                                                        .status("AMOUNT_MISMATCH")
+                                                        .processedAt(LocalDateTime.now())
+                                                        .build();
+                                }
+                        }
+
                         payment.setStatus(PaymentStatus.PAID);
                         // VNPay gửi amount * 100, convert về đơn vị gốc nếu cần
                         if (amountStr != null) {
@@ -292,12 +494,14 @@ public class PaymentServiceImpl implements PaymentService {
                         payment.setPaymentDate(LocalDateTime.now());
                         paymentRepository.save(payment);
 
-                        // 5. Update Order status — guard: do NOT override CANCELED (Bug #5: late IPN
-                        // after cancel)
+                        // 5. Update Order status — guard: do NOT override CANCELED/REFUNDED (Bug #5:
+                        // late IPN
+                        // after cancel/refund)
                         if (payment.getOrder() != null) {
                                 OrderEntity order = payment.getOrder();
                                 if (order.getStatus() != OrderStatus.PAID
-                                                && order.getStatus() != OrderStatus.CANCELED) {
+                                                && order.getStatus() != OrderStatus.CANCELED
+                                                && order.getStatus() != OrderStatus.REFUNDED) {
                                         OrderStatus previousStatus = order.getStatus();
                                         order.setStatus(OrderStatus.PAID);
                                         orderRepository.save(order);
@@ -349,16 +553,20 @@ public class PaymentServiceImpl implements PaymentService {
                 }
         }
 
-        private PaymentListResponse.PaymentRecord buildPaymentRecord(PaymentEntity p, boolean isAdmin) {
+        private PaymentListResponse.PaymentRecord buildPaymentRecord(PaymentEntity p,
+                        boolean isAdmin) {
                 // Resolve latest SUCCESS transaction for money amounts
                 TransactionEntity latestTxn = resolveLatestTransaction(p.getId());
 
+                BigDecimal amountPaid = latestTxn != null ? latestTxn.getAmount() : p.getAmountPaid();
+
                 return PaymentListResponse.PaymentRecord.builder()
+                                .storeId(p.getOrder() != null ? p.getOrder().getStoreId() : null)
                                 .orderId(p.getOrder() != null ? p.getOrder().getId().toString() : null)
                                 .orderNumber(p.getOrder() != null ? p.getOrder().getOrderNumber() : null)
                                 .customerName(resolveCustomerName(p))
                                 .paymentMethod(p.getPaymentMethod().toString())
-                                .amountPaid(latestTxn != null ? latestTxn.getAmount() : null)
+                                .amountPaid(amountPaid)
                                 .paymentDate(p.getCreatedAt().atZone(ZoneId.systemDefault()).toInstant())
                                 .status(p.getStatus().toString())
                                 // Error info from gateway response code stored on payment (admin only)
@@ -375,10 +583,11 @@ public class PaymentServiceImpl implements PaymentService {
                         throw new ApiException(PaymentErrorCode.PAYMENT_NOT_FOUND, "Payment not found");
                 }
                 PaymentEntity latest = payments.get(0);
-                boolean canViewAll = "FRANCHISE_ADMIN".equalsIgnoreCase(role) || "STORE_MANAGER".equalsIgnoreCase(role);
+                boolean canViewAll = "ADMIN".equalsIgnoreCase(role)
+                        || "MANAGER".equalsIgnoreCase(role)
+                        || "POS".equalsIgnoreCase(role);
                 if (!canViewAll) {
-                        if (latest.getOrder() == null || latest.getOrder().getCustomer() == null
-                                        || !latest.getOrder().getCustomer().getId().equals(currentUserId)) {
+                        if (latest.getOrder() == null || !latest.getOrder().getCustomerId().equals(currentUserId)) {
                                 throw new ApiException(PaymentErrorCode.PAYMENT_ACCESS_DENIED);
                         }
                 }
@@ -419,11 +628,14 @@ public class PaymentServiceImpl implements PaymentService {
                 }
                 PaymentStatus statusEnum = parsePaymentStatus(status.orElse(null));
                 PaymentMethod paymentMethodEnum = parsePaymentMethod(paymentMethod.orElse(null));
-                Instant fromInstant = fromDate.map(d -> d.atTime(LocalTime.MIN).atOffset(ZoneOffset.UTC).toInstant())
-                                .orElse(null);
-                Instant toInstant = toDate.map(d -> d.atTime(LocalTime.MAX).atOffset(ZoneOffset.UTC).toInstant())
-                                .orElse(null);
                 Pageable pageable = PageRequest.of(page - 1, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+
+                LocalDateTime fromInstant = fromDate
+                                .map(d -> d.atTime(LocalTime.MIN).atOffset(ZoneOffset.UTC).toLocalDateTime())
+                                .orElse(null);
+                LocalDateTime toInstant = toDate
+                                .map(d -> d.atTime(LocalTime.MAX).atOffset(ZoneOffset.UTC).toLocalDateTime())
+                                .orElse(null);
                 Page<PaymentEntity> resultPage = paymentRepository.findByAdminTransactionFilters(
                                 statusEnum, paymentMethodEnum, fromInstant, toInstant, pageable);
                 List<AdminTransactionListResponse.TransactionItem> content = resultPage.getContent().stream()
@@ -440,8 +652,8 @@ public class PaymentServiceImpl implements PaymentService {
 
         private AdminTransactionListResponse.TransactionItem toAdminTransactionItem(PaymentEntity p) {
                 UUID orderId = p.getOrder() != null ? p.getOrder().getId() : null;
-                UUID customerId = p.getOrder() != null && p.getOrder().getCustomer() != null
-                                ? p.getOrder().getCustomer().getId()
+                UUID customerId = p.getOrder() != null && p.getOrder().getCustomerId() != null
+                                ? p.getOrder().getCustomerId()
                                 : null;
                 TransactionEntity txn = resolveLatestTransaction(p.getId());
                 return AdminTransactionListResponse.TransactionItem.builder()
@@ -477,6 +689,19 @@ public class PaymentServiceImpl implements PaymentService {
         }
 
         /**
+         * Parse UUID string; null/blank → null; invalid → null.
+         */
+        private UUID parseUuid(String value) {
+                if (value == null || value.isBlank())
+                        return null;
+                try {
+                        return UUID.fromString(value.trim());
+                } catch (IllegalArgumentException e) {
+                        return null;
+                }
+        }
+
+        /**
          * Parse payment method string to PaymentMethod; null/blank → null; invalid →
          * null.
          */
@@ -497,12 +722,9 @@ public class PaymentServiceImpl implements PaymentService {
         }
 
         private String resolveCustomerName(PaymentEntity p) {
-                if (p.getOrder() == null || p.getOrder().getCustomer() == null)
+                if (p.getOrder() == null || p.getOrder().getCustomerId() == null)
                         return null;
-                var customer = p.getOrder().getCustomer();
-                if (customer.getProfile() != null) {
-                        return customer.getProfile().getFirstName() + " " + customer.getProfile().getLastName();
-                }
-                return customer.getEmail();
+                return "Customer"; // You can replace this with actual customer name logic if you have access to
+                                   // customer profiles
         }
 }

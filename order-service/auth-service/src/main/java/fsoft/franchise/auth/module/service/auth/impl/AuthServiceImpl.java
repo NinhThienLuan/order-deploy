@@ -17,6 +17,7 @@ import fsoft.franchise.auth.module.repository.AccountRepository;
 import fsoft.franchise.auth.module.service.auth.AuthService;
 import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -28,6 +29,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -37,17 +39,18 @@ public class AuthServiceImpl implements AuthService {
     private final AccountRepository accountRepository;
     private final JwtService jwtService;
     private final JwtProperties jwtProperties;
-    private final RefreshTokenRedis refreshTokenRedis;
     private final AuthenticationManager authenticationManager;
     private final PasswordEncoder passwordEncoder;
     private final AccountMapper accountMapper;
+
+    @Autowired(required = false)
+    private RefreshTokenRedis refreshTokenRedis;
 
     @Override
     public LoginResponseDTO login(LoginRequestDTO request) {
         try {
             authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(request.email(), request.password())
-            );
+                    new UsernamePasswordAuthenticationToken(request.email(), request.password()));
         } catch (UsernameNotFoundException e) {
             throw new ApiException(ErrorCode.INVALID_INFO, "Email Invalid");
         } catch (BadCredentialsException e) {
@@ -59,12 +62,11 @@ public class AuthServiceImpl implements AuthService {
                 .findByEmail(request.email())
                 .orElseThrow(() -> new ApiException(ErrorCode.INVALID_INFO));
 
-        if(account.getStatus() != StatusEnum.ACTIVE) {
+        if (account.getStatus() != StatusEnum.ACTIVE) {
             throw new ApiException(ErrorCode.INVALID_INFO, "Account is InACTIVE");
         }
         return generateAuthResponse(account);
     }
-
 
     @Override
     public LoginResponseDTO refresh(String refreshToken) {
@@ -77,8 +79,14 @@ public class AuthServiceImpl implements AuthService {
 
             // 2. Kiểm tra token có tồn tại trong Redis không (chống token đã logout)
             String jti = claims.getId();
-            String userIdStr = refreshTokenRedis.getUserIdByJti(jti)
-                    .orElseThrow(() -> new ApiException(ErrorCode.UNAUTHENTICATED));
+            String userIdStr = null;
+            if (refreshTokenRedis != null) {
+                userIdStr = refreshTokenRedis.getUserIdByJti(jti)
+                        .orElseThrow(() -> new ApiException(ErrorCode.UNAUTHENTICATED));
+            } else {
+                // Without Redis, use userId from token claims
+                userIdStr = claims.get("sub", String.class);
+            }
 
             // 3. Lấy User mới nhất từ DB để đảm bảo họ vẫn ACTIVE
             AccountEntity account = accountRepository.findById(UUID.fromString(userIdStr))
@@ -86,7 +94,9 @@ public class AuthServiceImpl implements AuthService {
                     .orElseThrow(() -> new ApiException(ErrorCode.INVALID_INFO));
 
             // 4. (Tùy chọn) Xóa token cũ để thực hiện Token Rotation (Bảo mật hơn)
-            refreshTokenRedis.revoke(jti);
+            if (refreshTokenRedis != null) {
+                refreshTokenRedis.revoke(jti);
+            }
 
             // 5. Cấp bộ token mới
             return generateAuthResponse(account);
@@ -101,7 +111,9 @@ public class AuthServiceImpl implements AuthService {
         try {
             Claims claims = jwtService.parseClaims(refreshToken);
             String jti = claims.getId();
-            refreshTokenRedis.revoke(jti);
+            if (refreshTokenRedis != null) {
+                refreshTokenRedis.revoke(jti);
+            }
         } catch (Exception e) {
 
         }
@@ -111,12 +123,14 @@ public class AuthServiceImpl implements AuthService {
     public void logoutAll(String email) {
         AccountEntity account = accountRepository.findByEmail(email)
                 .orElseThrow(() -> new ApiException(ErrorCode.INVALID_INFO));
-       this.executeLogoutAll(account);
+        this.executeLogoutAll(account);
     }
 
     private void executeLogoutAll(AccountEntity account) {
-        refreshTokenRedis.revokeAllTokens(account.getId().toString());
-        refreshTokenRedis.setLogoutTime(account.getEmail());
+        if (refreshTokenRedis != null) {
+            refreshTokenRedis.revokeAllTokens(account.getId().toString());
+            refreshTokenRedis.setLogoutTime(account.getEmail());
+        }
     }
 
     // Gom nhóm logic tạo Token và lưu Redis
@@ -126,12 +140,14 @@ public class AuthServiceImpl implements AuthService {
         String accessToken = jwtService.generateAccessToken(account);
         String refreshToken = jwtService.generateRefreshToken(account, jti);
 
-        // Lưu Refresh Token vào Redis với thời gian sống (TTL) tương ứng
-        refreshTokenRedis.store(
-                jti,
-                account.getId().toString(),
-                Duration.ofMillis(jwtProperties.refreshTtlMs())
-        );
+        // Lưu Refresh Token vào Redis với thời gian sống (TTL) tương ứng (nếu Redis
+        // available)
+        if (refreshTokenRedis != null) {
+            refreshTokenRedis.store(
+                    jti,
+                    account.getId().toString(),
+                    Duration.ofMillis(jwtProperties.refreshTtlMs()));
+        }
 
         return new LoginResponseDTO(
                 accessToken,
@@ -142,20 +158,21 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    public void changePassword(ChangePasswordRequestDTO request){
-        if(!request.newPassword().equals(request.confirmPassword())) {
+    public void changePassword(ChangePasswordRequestDTO request) {
+        if (!request.newPassword().equals(request.confirmPassword())) {
             throw new ApiException(ErrorCode.INVALID_INFO, "Confirm password does not match new password");
         }
 
-        if(request.newPassword().equals(request.oldPassword())) {
+        if (request.newPassword().equals(request.oldPassword())) {
             throw new ApiException(ErrorCode.INVALID_INFO, "New password must be different from old password");
         }
 
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
 
-        AccountEntity account = accountRepository.findByEmail(email).orElseThrow(() -> new ApiException(ErrorCode.UNAUTHENTICATED));
+        AccountEntity account = accountRepository.findByEmail(email)
+                .orElseThrow(() -> new ApiException(ErrorCode.UNAUTHENTICATED));
 
-        if(!passwordEncoder.matches(request.oldPassword(), account.getPassword())) {
+        if (!passwordEncoder.matches(request.oldPassword(), account.getPassword())) {
             throw new ApiException(ErrorCode.INVALID_INFO, "Old password is incorrect");
         }
 
@@ -177,10 +194,10 @@ public class AuthServiceImpl implements AuthService {
             throw new ApiException(ErrorCode.UNAUTHENTICATED, "Token không chứa thông tin User");
         }
 
-//        // 2. Kiểm tra token có tồn tại trong Redis không (chống token đã logout)
-//        String jti = claims.getId();
-//        String userIdStr = refreshTokenRedis.getUserIdByJti(jti)
-//                .orElseThrow(() -> new ApiException(ErrorCode.UNAUTHENTICATED));
+        // // 2. Kiểm tra token có tồn tại trong Redis không (chống token đã logout)
+        // String jti = claims.getId();
+        // String userIdStr = refreshTokenRedis.getUserIdByJti(jti)
+        // .orElseThrow(() -> new ApiException(ErrorCode.UNAUTHENTICATED));
 
         // 3. Lấy User mới nhất từ DB để đảm bảo họ vẫn ACTIVE
         AccountEntity account = accountRepository.findById(UUID.fromString(userId))

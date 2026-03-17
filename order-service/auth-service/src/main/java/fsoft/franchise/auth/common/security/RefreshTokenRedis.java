@@ -1,6 +1,8 @@
 package fsoft.franchise.auth.common.security;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -12,6 +14,8 @@ import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
+@ConditionalOnClass(StringRedisTemplate.class)
+@ConditionalOnProperty(name = "spring.data.redis.host", matchIfMissing = false)
 public class RefreshTokenRedis {
     private static final String PREFIX = "rt:";
     private static final String USER_INDEX_PREFIX = "user_rt:";

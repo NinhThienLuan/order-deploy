@@ -11,4 +11,11 @@ import java.util.UUID;
 public interface CategoryRepository extends JpaRepository<CategoryEntity, UUID> {
     /** Returns all active, non-deleted categories ordered by name. */
     List<CategoryEntity> findAllByActiveTrueAndDeleteAtIsNullOrderByNameAsc();
+
+    /** Returns all non-deleted categories (including inactive ones) for Admin. */
+    List<CategoryEntity> findAllByDeleteAtIsNullOrderByNameAsc();
+
+    boolean existsByNameIgnoreCaseAndDeleteAtIsNull(String name);
+
+    boolean existsByNameIgnoreCaseAndIdNotAndDeleteAtIsNull(String name, UUID id);
 }

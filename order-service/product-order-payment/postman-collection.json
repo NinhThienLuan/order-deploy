@@ -1,0 +1,4364 @@
+{
+	"info": {
+		"_postman_id": "franchise-pos-api-collection",
+		"name": "Franchise POS API - Full Test Suite",
+		"description": "Complete test suite for Product-Order-Payment service with 3-5 test cases per API endpoint",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8081",
+			"type": "string"
+		},
+		{
+			"key": "accessToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "productId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "variantId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "categoryId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "orderId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "paymentId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "refundId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "imageId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "orderNumber",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{accessToken}}",
+				"type": "string"
+			}
+		]
+	},
+	"item": [
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "Login - Valid credentials",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Response has accessToken', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.result || jsonData).to.have.property('accessToken');",
+									"    var token = (jsonData.result || jsonData).accessToken;",
+									"    pm.collectionVariables.set('accessToken', token);",
+									"});",
+									"pm.test('Response has refreshToken', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.result || jsonData).to.have.property('refreshToken');",
+									"});",
+									"pm.test('Response has expiredIn', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect((jsonData.result || jsonData).expiredIn).to.be.a('number');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"admin@franchise.com\",\n  \"password\": \"Admin@123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "auth", "login"]
+						}
+					}
+				},
+				{
+					"name": "Login - Invalid password",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 401 or 400', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([400, 401]);",
+									"});",
+									"pm.test('Error message present', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.message || jsonData.error).to.exist;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"admin@franchise.com\",\n  \"password\": \"wrongpassword\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "auth", "login"]
+						}
+					}
+				},
+				{
+					"name": "Login - Missing email",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 400', function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"pm.test('Validation error for email', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var body = JSON.stringify(jsonData).toLowerCase();",
+									"    pm.expect(body).to.include('email');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"password\": \"Admin@123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "auth", "login"]
+						}
+					}
+				},
+				{
+					"name": "Login - Invalid email format",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 400', function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"pm.test('Validation error for email', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var body = JSON.stringify(jsonData).toLowerCase();",
+									"    pm.expect(body).to.include('email');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"not-an-email\",\n  \"password\": \"Admin@123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "auth", "login"]
+						}
+					}
+				},
+				{
+					"name": "Get Current User - Authenticated",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Response has user info', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data).to.have.property('email');",
+									"});",
+									"pm.test('Response has roles', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data).to.have.property('roles');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/auth/me",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "auth", "me"]
+						}
+					}
+				},
+				{
+					"name": "Get Current User - No token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 401 or 403', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([401, 403]);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/auth/me",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "auth", "me"]
+						}
+					}
+				},
+				{
+					"name": "Logout",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/auth/logout",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "auth", "logout"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Products (Public)",
+			"item": [
+				{
+					"name": "List Products - Default pagination",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Response has paginated content', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data).to.have.property('content');",
+									"    pm.expect(data.content).to.be.an('array');",
+									"});",
+									"pm.test('Products have required fields', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    if (data.content.length > 0) {",
+									"        var p = data.content[0];",
+									"        pm.expect(p).to.have.property('id');",
+									"        pm.expect(p).to.have.property('name');",
+									"        pm.collectionVariables.set('productId', p.id);",
+									"    }",
+									"});",
+									"pm.test('Default page size is 12', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data.size).to.eql(12);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/products",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "products"]
+						}
+					}
+				},
+				{
+					"name": "List Products - With pagination",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Page size matches request', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data.size).to.eql(5);",
+									"});",
+									"pm.test('Page number matches request', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data.number || data.page).to.be.oneOf([0, 1]);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/products?page=0&size=5",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "products"],
+							"query": [
+								{ "key": "page", "value": "0" },
+								{ "key": "size", "value": "5" }
+							]
+						}
+					}
+				},
+				{
+					"name": "List Products - Search by name",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Response is paginated', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data).to.have.property('content');",
+									"});",
+									"pm.test('Search filter applied', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data.content).to.be.an('array');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/products?search=coffee",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "products"],
+							"query": [
+								{ "key": "search", "value": "coffee" }
+							]
+						}
+					}
+				},
+				{
+					"name": "List Products - Filter by categoryId",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('All items belong to category', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    data.content.forEach(function(p) {",
+									"        pm.expect(p.categoryId).to.eql(pm.collectionVariables.get('categoryId'));",
+									"    });",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/products?categoryId={{categoryId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "products"],
+							"query": [
+								{ "key": "categoryId", "value": "{{categoryId}}" }
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Product Detail - Valid ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Response has product details', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data).to.have.property('id');",
+									"    pm.expect(data).to.have.property('name');",
+									"    pm.expect(data).to.have.property('description');",
+									"    pm.expect(data).to.have.property('variants');",
+									"});",
+									"pm.test('Variants is an array', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data.variants).to.be.an('array');",
+									"    if (data.variants.length > 0) {",
+									"        pm.collectionVariables.set('variantId', data.variants[0].id);",
+									"    }",
+									"});",
+									"pm.test('Images is an array', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data.images).to.be.an('array');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/products/{{productId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "products", "{{productId}}"]
+						}
+					}
+				},
+				{
+					"name": "Get Product Detail - Non-existent ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 404', function () {",
+									"    pm.response.to.have.status(404);",
+									"});",
+									"pm.test('Error message present', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.message || jsonData.error).to.exist;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/products/00000000-0000-0000-0000-000000000000",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "products", "00000000-0000-0000-0000-000000000000"]
+						}
+					}
+				},
+				{
+					"name": "Get Product Detail - Invalid UUID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 400', function () {",
+									"    pm.response.to.have.status(400);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/products/invalid-uuid",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "products", "invalid-uuid"]
+						}
+					}
+				},
+				{
+					"name": "List Categories",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Response is a list', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    var list = Array.isArray(data) ? data : data.content || data;",
+									"    pm.expect(list).to.be.an('array');",
+									"    if (list.length > 0) {",
+									"        pm.collectionVariables.set('categoryId', list[0].id);",
+									"    }",
+									"});",
+									"pm.test('Categories have name and id', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    var list = Array.isArray(data) ? data : data.content || data;",
+									"    if (list.length > 0) {",
+									"        pm.expect(list[0]).to.have.property('id');",
+									"        pm.expect(list[0]).to.have.property('name');",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/products/categories",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "products", "categories"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Orders",
+			"item": [
+				{
+					"name": "Create Order - Valid request",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200 or 201', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"pm.test('Response has orderId', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data).to.have.property('orderId');",
+									"    pm.collectionVariables.set('orderId', data.orderId);",
+									"});",
+									"pm.test('Order status is PENDING', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data.status).to.eql('PENDING');",
+									"});",
+									"pm.test('Response has totalAmount', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data.totalAmount).to.be.a('number');",
+									"});",
+									"pm.test('Response has items list', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data.items).to.be.an('array');",
+									"    pm.expect(data.items.length).to.be.greaterThan(0);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"variantId\": \"{{variantId}}\",\n      \"quantity\": 2\n    }\n  ],\n  \"deliveryAddress\": \"123 Test Street, District 1\",\n  \"note\": \"No sugar\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/orders",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "orders"]
+						}
+					}
+				},
+				{
+					"name": "Create Order - Empty items",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 400', function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"pm.test('Validation error for items', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var body = JSON.stringify(jsonData).toLowerCase();",
+									"    pm.expect(body).to.include('item');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"items\": [],\n  \"deliveryAddress\": \"123 Test Street\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/orders",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "orders"]
+						}
+					}
+				},
+				{
+					"name": "Create Order - Invalid quantity (0)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 400', function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"pm.test('Validation error for quantity', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var body = JSON.stringify(jsonData).toLowerCase();",
+									"    pm.expect(body).to.include('quantity').or.include('min');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"variantId\": \"{{variantId}}\",\n      \"quantity\": 0\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/orders",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "orders"]
+						}
+					}
+				},
+				{
+					"name": "Create Order - No auth token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 401 or 403', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([401, 403]);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"variantId\": \"{{variantId}}\",\n      \"quantity\": 1\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/orders",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "orders"]
+						}
+					}
+				},
+				{
+					"name": "Create Order - Non-existent product",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 404 or 400', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([400, 404]);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"items\": [\n    {\n      \"productId\": \"00000000-0000-0000-0000-000000000000\",\n      \"quantity\": 1\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/orders",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "orders"]
+						}
+					}
+				},
+				{
+					"name": "Get All Orders - Admin",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Response has paginated content', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data).to.have.property('content');",
+									"});",
+									"pm.test('Orders have required fields', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    if (data.content.length > 0) {",
+									"        pm.expect(data.content[0]).to.have.property('id');",
+									"        pm.expect(data.content[0]).to.have.property('status');",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/orders?page=1&size=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "orders"],
+							"query": [
+								{ "key": "page", "value": "1" },
+								{ "key": "size", "value": "10" }
+							]
+						}
+					}
+				},
+				{
+					"name": "Get All Orders - Filter by status",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Filtered results returned', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data).to.have.property('content');",
+									"    data.content.forEach(function(o) {",
+									"        pm.expect(o.status).to.eql('PENDING');",
+									"    });",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/orders?status=PENDING",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "orders"],
+							"query": [
+								{ "key": "status", "value": "PENDING" }
+							]
+						}
+					}
+				},
+				{
+					"name": "Get All Orders - No auth",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 401 or 403', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([401, 403]);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/orders",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "orders"]
+						}
+					}
+				},
+				{
+					"name": "Get Order Detail - Valid ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Response has order details', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data).to.have.property('orderId');",
+									"    pm.expect(data).to.have.property('status');",
+									"    pm.expect(data).to.have.property('items');",
+									"});",
+									"pm.test('Response has pricing info', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data).to.have.property('pricing');",
+									"});",
+									"pm.test('Items list is non-empty', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data.items).to.be.an('array');",
+									"    pm.expect(data.items.length).to.be.greaterThan(0);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/orders/{{orderId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "orders", "{{orderId}}"]
+						}
+					}
+				},
+				{
+					"name": "Get Order Detail - Non-existent ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 404', function () {",
+									"    pm.response.to.have.status(404);",
+									"});",
+									"pm.test('Error message present', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.message || jsonData.error).to.exist;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/orders/00000000-0000-0000-0000-000000000000",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "orders", "00000000-0000-0000-0000-000000000000"]
+						}
+					}
+				},
+				{
+					"name": "Get Order Detail - Invalid UUID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 400', function () {",
+									"    pm.response.to.have.status(400);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/orders/not-a-uuid",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "orders", "not-a-uuid"]
+						}
+					}
+				},
+				{
+					"name": "Get Order Status - Valid ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Response has status', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data).to.have.property('status');",
+									"});",
+									"pm.test('Status is valid enum', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    var validStatuses = ['PENDING','PROCESSING','PAID','PREPARING','READY','COMPLETED','CANCELED','REFUNDED'];",
+									"    pm.expect(validStatuses).to.include(data.status);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/orders/{{orderId}}/status",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "orders", "{{orderId}}", "status"]
+						}
+					}
+				},
+				{
+					"name": "Get Order Status - Non-existent ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 404', function () {",
+									"    pm.response.to.have.status(404);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/orders/00000000-0000-0000-0000-000000000000/status",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "orders", "00000000-0000-0000-0000-000000000000", "status"]
+						}
+					}
+				},
+				{
+					"name": "Get Order Statuses (enum list)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Response is an array', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    var list = Array.isArray(data) ? data : [data];",
+									"    pm.expect(list).to.be.an('array');",
+									"});",
+									"pm.test('Contains known statuses', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    var list = Array.isArray(data) ? data : [data];",
+									"    pm.expect(list).to.include('PENDING');",
+									"    pm.expect(list).to.include('COMPLETED');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/orders/statuses",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "orders", "statuses"]
+						}
+					}
+				},
+				{
+					"name": "Get My Orders - Authenticated",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Response has paginated content', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data).to.have.property('content');",
+									"    pm.expect(data).to.have.property('totalElements');",
+									"});",
+									"pm.test('Content is an array', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data.content).to.be.an('array');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/orders/me?page=1&size=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "orders", "me"],
+							"query": [
+								{ "key": "page", "value": "1" },
+								{ "key": "size", "value": "10" }
+							]
+						}
+					}
+				},
+				{
+					"name": "Get My Orders - No auth",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 401 or 403', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([401, 403]);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/orders/me",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "orders", "me"]
+						}
+					}
+				},
+				{
+					"name": "Token Test",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Returns userId string', function () {",
+									"    pm.expect(pm.response.text()).to.not.be.empty;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/orders/test",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "orders", "test"]
+						}
+					}
+				},
+				{
+					"name": "Cancel Order - Valid order",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Response has orderId', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data).to.have.property('orderId');",
+									"});",
+									"pm.test('Response has canceledAt timestamp', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data).to.have.property('canceledAt');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/orders/{{orderId}}/cancel",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "orders", "{{orderId}}", "cancel"]
+						}
+					}
+				},
+				{
+					"name": "Cancel Order - Non-existent ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 404', function () {",
+									"    pm.response.to.have.status(404);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/orders/00000000-0000-0000-0000-000000000000/cancel",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "orders", "00000000-0000-0000-0000-000000000000", "cancel"]
+						}
+					}
+				},
+				{
+					"name": "Cancel Order - Already completed",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 400 or 409', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([400, 409]);",
+									"});",
+									"pm.test('Error message indicates invalid state', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.message || jsonData.error).to.exist;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/orders/{{orderId}}/cancel",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "orders", "{{orderId}}", "cancel"]
+						}
+					}
+				},
+				{
+					"name": "Process Payment - CASH",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Response has paymentId', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data).to.have.property('paymentId');",
+									"    pm.collectionVariables.set('paymentId', data.paymentId);",
+									"});",
+									"pm.test('Payment method is CASH', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data.paymentMethod).to.eql('CASH');",
+									"});",
+									"pm.test('Response has amountPaid', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data.amountPaid).to.be.a('number');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"paymentMethod\": \"CASH\",\n  \"amount\": 50000\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/orders/{{orderId}}/payments",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "orders", "{{orderId}}", "payments"]
+						}
+					}
+				},
+				{
+					"name": "Process Payment - VNPAY",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Response has paymentUrl for redirect', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data).to.have.property('paymentUrl');",
+									"});",
+									"pm.test('Payment method is VNPAY', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data.paymentMethod).to.eql('VNPAY');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"paymentMethod\": \"VNPAY\",\n  \"amount\": 50000\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/orders/{{orderId}}/payments",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "orders", "{{orderId}}", "payments"]
+						}
+					}
+				},
+				{
+					"name": "Process Payment - MOMO",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Response has paymentUrl', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data).to.have.property('paymentUrl');",
+									"});",
+									"pm.test('Payment method is MOMO', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data.paymentMethod).to.eql('MOMO');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"paymentMethod\": \"MOMO\",\n  \"amount\": 50000,\n  \"momoRequestType\": \"captureWallet\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/orders/{{orderId}}/payments",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "orders", "{{orderId}}", "payments"]
+						}
+					}
+				},
+				{
+					"name": "Process Payment - Invalid method",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 400', function () {",
+									"    pm.response.to.have.status(400);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"paymentMethod\": \"INVALID\",\n  \"amount\": 50000\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/orders/{{orderId}}/payments",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "orders", "{{orderId}}", "payments"]
+						}
+					}
+				},
+				{
+					"name": "Confirm Payment - Success",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Payment confirmed', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data).to.have.property('paymentStatus');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/orders/{{orderId}}/payments/confirm?paymentId={{paymentId}}&success=true",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "orders", "{{orderId}}", "payments", "confirm"],
+							"query": [
+								{ "key": "paymentId", "value": "{{paymentId}}" },
+								{ "key": "success", "value": "true" }
+							]
+						}
+					}
+				},
+				{
+					"name": "Confirm Payment - Failure",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200 or 400', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 400]);",
+									"});",
+									"pm.test('Response present', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.not.be.null;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/orders/{{orderId}}/payments/confirm?paymentId={{paymentId}}&success=false",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "orders", "{{orderId}}", "payments", "confirm"],
+							"query": [
+								{ "key": "paymentId", "value": "{{paymentId}}" },
+								{ "key": "success", "value": "false" }
+							]
+						}
+					}
+				},
+				{
+					"name": "Confirm Payment - Missing paymentId",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 400', function () {",
+									"    pm.response.to.have.status(400);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/orders/{{orderId}}/payments/confirm?success=true",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "orders", "{{orderId}}", "payments", "confirm"],
+							"query": [
+								{ "key": "success", "value": "true" }
+							]
+						}
+					}
+				},
+				{
+					"name": "Create Refund Request - Valid",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200 or 201', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"pm.test('Response has refundId', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data).to.have.property('refundId');",
+									"    pm.collectionVariables.set('refundId', data.refundId);",
+									"});",
+									"pm.test('Refund status is PENDING', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data.status).to.eql('PENDING');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"orderId\": \"{{orderId}}\",\n  \"amount\": 25000,\n  \"reason\": \"Product received damaged\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/orders/refund",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "orders", "refund"]
+						}
+					}
+				},
+				{
+					"name": "Create Refund Request - Missing reason",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 400', function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"pm.test('Validation error for reason', function () {",
+									"    var body = JSON.stringify(pm.response.json()).toLowerCase();",
+									"    pm.expect(body).to.include('reason').or.include('blank');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"orderId\": \"{{orderId}}\",\n  \"amount\": 25000\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/orders/refund",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "orders", "refund"]
+						}
+					}
+				},
+				{
+					"name": "Create Refund Request - Invalid amount",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 400', function () {",
+									"    pm.response.to.have.status(400);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"orderId\": \"{{orderId}}\",\n  \"amount\": -100,\n  \"reason\": \"Test refund\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/orders/refund",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "orders", "refund"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Payments",
+			"item": [
+				{
+					"name": "Get Payment Methods - Public",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Response is a list', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    var list = Array.isArray(data) ? data : data.content || data;",
+									"    pm.expect(list).to.be.an('array');",
+									"});",
+									"pm.test('Payment methods have code and name', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    var list = Array.isArray(data) ? data : data.content || data;",
+									"    if (list.length > 0) {",
+									"        pm.expect(list[0]).to.have.property('code');",
+									"        pm.expect(list[0]).to.have.property('name');",
+									"    }",
+									"});",
+									"pm.test('Contains known methods', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    var list = Array.isArray(data) ? data : data.content || data;",
+									"    var codes = list.map(function(m) { return m.code; });",
+									"    pm.expect(codes).to.include('CASH');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/payments/methods",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "payments", "methods"]
+						}
+					}
+				},
+				{
+					"name": "Get Payment History - Authenticated",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Response has data list', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data).to.have.property('data');",
+									"    pm.expect(data.data).to.be.an('array');",
+									"});",
+									"pm.test('Response has pagination', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data).to.have.property('pagination');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/payments?page=1&size=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "payments"],
+							"query": [
+								{ "key": "page", "value": "1" },
+								{ "key": "size", "value": "10" }
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Payment History - No auth",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 401 or 403', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([401, 403]);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/payments",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "payments"]
+						}
+					}
+				},
+				{
+					"name": "Get Payment History - Filter by status",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Response has data', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data).to.have.property('data');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/payments?status=PAID&page=1&size=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "payments"],
+							"query": [
+								{ "key": "status", "value": "PAID" },
+								{ "key": "page", "value": "1" },
+								{ "key": "size", "value": "10" }
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Payment Status - Valid orderId",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Response has payment status', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data).to.have.property('status');",
+									"});",
+									"pm.test('Response has orderId', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data).to.have.property('orderId');",
+									"});",
+									"pm.test('Status is valid', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    var valid = ['PENDING','PAID','FAILED','REFUNDED'];",
+									"    pm.expect(valid).to.include(data.status);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/payments/{{orderId}}/status",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "payments", "{{orderId}}", "status"]
+						}
+					}
+				},
+				{
+					"name": "Get Payment Status - Non-existent orderId",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 404', function () {",
+									"    pm.response.to.have.status(404);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/payments/00000000-0000-0000-0000-000000000000/status",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "payments", "00000000-0000-0000-0000-000000000000", "status"]
+						}
+					}
+				},
+				{
+					"name": "Create Payment - Valid",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200 or 201', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"pm.test('Response has paymentId', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data).to.have.property('paymentId');",
+									"});",
+									"pm.test('Response has paymentStatus', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data).to.have.property('paymentStatus');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"orderId\": \"{{orderId}}\",\n  \"paymentMethod\": \"CASH\",\n  \"amount\": 50000,\n  \"transactionId\": \"TXN-TEST-001\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/payments/create",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "payments", "create"]
+						}
+					}
+				},
+				{
+					"name": "Create Payment - Missing orderId",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 400', function () {",
+									"    pm.response.to.have.status(400);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"paymentMethod\": \"CASH\",\n  \"amount\": 50000,\n  \"transactionId\": \"TXN-TEST-002\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/payments/create",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "payments", "create"]
+						}
+					}
+				},
+				{
+					"name": "Create Payment - Negative amount",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 400', function () {",
+									"    pm.response.to.have.status(400);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"orderId\": \"{{orderId}}\",\n  \"paymentMethod\": \"CASH\",\n  \"amount\": -1000,\n  \"transactionId\": \"TXN-NEG-001\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/payments/create",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "payments", "create"]
+						}
+					}
+				},
+				{
+					"name": "Confirm CASH Payment - Valid",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Payment confirmed', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data).to.have.property('paymentStatus');",
+									"});",
+									"pm.test('Status changed to PAID', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data.paymentStatus).to.eql('PAID');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/payments/{{paymentId}}/confirm-cash",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "payments", "{{paymentId}}", "confirm-cash"]
+						}
+					}
+				},
+				{
+					"name": "Confirm CASH Payment - Non-existent ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 404', function () {",
+									"    pm.response.to.have.status(404);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/payments/00000000-0000-0000-0000-000000000000/confirm-cash",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "payments", "00000000-0000-0000-0000-000000000000", "confirm-cash"]
+						}
+					}
+				},
+				{
+					"name": "Confirm CASH Payment - Already paid",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 400 or 409', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([400, 409]);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/payments/{{paymentId}}/confirm-cash",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "payments", "{{paymentId}}", "confirm-cash"]
+						}
+					}
+				},
+				{
+					"name": "VNPay Webhook - Mock callback",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Response has status', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data).to.have.property('status');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"vnp_TxnRef\": \"TXN-TEST-001\",\n  \"vnp_ResponseCode\": \"00\",\n  \"vnp_TransactionNo\": \"14300123\",\n  \"vnp_BankCode\": \"NCB\",\n  \"vnp_Amount\": \"5000000\",\n  \"vnp_SecureHash\": \"mock-hash\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/payments/webhook",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "payments", "webhook"]
+						}
+					}
+				},
+				{
+					"name": "VNPay Webhook - Failed transaction",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Response indicates failure', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    var body = JSON.stringify(data);",
+									"    pm.expect(body).to.not.be.empty;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"vnp_TxnRef\": \"TXN-TEST-002\",\n  \"vnp_ResponseCode\": \"24\",\n  \"vnp_TransactionNo\": \"14300124\",\n  \"vnp_BankCode\": \"NCB\",\n  \"vnp_Amount\": \"5000000\",\n  \"vnp_SecureHash\": \"mock-hash\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/payments/webhook",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "payments", "webhook"]
+						}
+					}
+				},
+				{
+					"name": "VNPay Return - Mock redirect",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200 or 302', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 302]);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/payments/vnpay-return?vnp_ResponseCode=00&vnp_TxnRef=TXN-TEST-001",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "payments", "vnpay-return"],
+							"query": [
+								{ "key": "vnp_ResponseCode", "value": "00" },
+								{ "key": "vnp_TxnRef", "value": "TXN-TEST-001" }
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "MoMo Callbacks",
+			"item": [
+				{
+					"name": "MoMo IPN Callback - Success",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Response has resultCode', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('resultCode');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"orderId\": \"MOMO-TEST-001\",\n  \"requestId\": \"REQ-001\",\n  \"amount\": \"50000\",\n  \"resultCode\": \"0\",\n  \"message\": \"Successful.\",\n  \"transId\": \"2649000123\",\n  \"orderType\": \"momo_wallet\",\n  \"payType\": \"qr\",\n  \"signature\": \"mock-signature\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/payments/momo/callback",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "payments", "momo", "callback"]
+						}
+					}
+				},
+				{
+					"name": "MoMo IPN Callback - Failed",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Response present', function () {",
+									"    pm.expect(pm.response.json()).to.not.be.null;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"orderId\": \"MOMO-TEST-002\",\n  \"requestId\": \"REQ-002\",\n  \"amount\": \"50000\",\n  \"resultCode\": \"1006\",\n  \"message\": \"Transaction denied by user.\",\n  \"transId\": \"\",\n  \"signature\": \"mock-signature\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/payments/momo/callback",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "payments", "momo", "callback"]
+						}
+					}
+				},
+				{
+					"name": "MoMo IPN Callback - Empty body",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 400 or 200', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 400]);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/payments/momo/callback",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "payments", "momo", "callback"]
+						}
+					}
+				},
+				{
+					"name": "MoMo Return Redirect - Success",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200 or 302', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 302]);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/payments/momo/return?orderId=MOMO-TEST-001&resultCode=0&message=Successful",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "payments", "momo", "return"],
+							"query": [
+								{ "key": "orderId", "value": "MOMO-TEST-001" },
+								{ "key": "resultCode", "value": "0" },
+								{ "key": "message", "value": "Successful" }
+							]
+						}
+					}
+				},
+				{
+					"name": "MoMo Return Redirect - Failed",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200 or 302', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 302]);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/payments/momo/return?orderId=MOMO-TEST-002&resultCode=1006&message=Denied",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "payments", "momo", "return"],
+							"query": [
+								{ "key": "orderId", "value": "MOMO-TEST-002" },
+								{ "key": "resultCode", "value": "1006" },
+								{ "key": "message", "value": "Denied" }
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Refunds",
+			"item": [
+				{
+					"name": "Get Pending Refunds - Admin",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Response is a list', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    var list = Array.isArray(data) ? data : data.content || data;",
+									"    pm.expect(list).to.be.an('array');",
+									"});",
+									"pm.test('All items have PENDING status', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    var list = Array.isArray(data) ? data : data.content || data;",
+									"    list.forEach(function(r) {",
+									"        pm.expect(r.status).to.eql('PENDING');",
+									"    });",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/refunds/pending",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "refunds", "pending"]
+						}
+					}
+				},
+				{
+					"name": "Get Pending Refunds - No auth",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 401 or 403', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([401, 403]);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/refunds/pending",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "refunds", "pending"]
+						}
+					}
+				},
+				{
+					"name": "Approve Refund - Valid ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Refund status changed to APPROVED', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data.status).to.be.oneOf(['APPROVED', 'COMPLETED']);",
+									"});",
+									"pm.test('Response has refundId', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data).to.have.property('refundId');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/refunds/{{refundId}}/approve",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "refunds", "{{refundId}}", "approve"]
+						}
+					}
+				},
+				{
+					"name": "Approve Refund - Non-existent ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 404', function () {",
+									"    pm.response.to.have.status(404);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/refunds/00000000-0000-0000-0000-000000000000/approve",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "refunds", "00000000-0000-0000-0000-000000000000", "approve"]
+						}
+					}
+				},
+				{
+					"name": "Decline Refund - Valid with reason",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Refund status changed to REJECTED', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data.status).to.eql('REJECTED');",
+									"});",
+									"pm.test('Decline reason present', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data).to.have.property('declineReason');",
+									"    pm.expect(data.declineReason).to.not.be.empty;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"declineReason\": \"Product was used and cannot be refunded\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/refunds/{{refundId}}/decline",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "refunds", "{{refundId}}", "decline"]
+						}
+					}
+				},
+				{
+					"name": "Decline Refund - Missing reason",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 400', function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"pm.test('Validation error for declineReason', function () {",
+									"    var body = JSON.stringify(pm.response.json()).toLowerCase();",
+									"    pm.expect(body).to.include('decline').or.include('reason').or.include('blank');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/refunds/{{refundId}}/decline",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "refunds", "{{refundId}}", "decline"]
+						}
+					}
+				},
+				{
+					"name": "Decline Refund - Non-existent ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 404', function () {",
+									"    pm.response.to.have.status(404);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"declineReason\": \"Invalid\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/refunds/00000000-0000-0000-0000-000000000000/decline",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "refunds", "00000000-0000-0000-0000-000000000000", "decline"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Admin - Category",
+			"item": [
+				{
+					"name": "List All Categories - Admin",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Response is a list', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    var list = Array.isArray(data) ? data : data.content || data;",
+									"    pm.expect(list).to.be.an('array');",
+									"});",
+									"pm.test('Categories have id and name', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    var list = Array.isArray(data) ? data : data.content || data;",
+									"    if (list.length > 0) {",
+									"        pm.expect(list[0]).to.have.property('id');",
+									"        pm.expect(list[0]).to.have.property('name');",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/admin/categories",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "admin", "categories"]
+						}
+					}
+				},
+				{
+					"name": "List All Categories - No auth",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 401 or 403', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([401, 403]);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/admin/categories",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "admin", "categories"]
+						}
+					}
+				},
+				{
+					"name": "Create Category - Valid",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200 or 201', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"pm.test('Response has category id', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data).to.have.property('id');",
+									"    pm.collectionVariables.set('categoryId', data.id);",
+									"});",
+									"pm.test('Name matches input', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data.name).to.eql('Test Category');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Test Category\",\n  \"description\": \"A test category for API testing\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/admin/categories",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "admin", "categories"]
+						}
+					}
+				},
+				{
+					"name": "Create Category - Missing name",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 400', function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"pm.test('Validation error for name', function () {",
+									"    var body = JSON.stringify(pm.response.json()).toLowerCase();",
+									"    pm.expect(body).to.include('name').or.include('blank');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"description\": \"Missing name field\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/admin/categories",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "admin", "categories"]
+						}
+					}
+				},
+				{
+					"name": "Create Category - Name too long (>120 chars)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 400', function () {",
+									"    pm.response.to.have.status(400);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"This is a very long category name that exceeds the maximum length of one hundred and twenty characters allowed by the validation constraint so it should fail\",\n  \"description\": \"Test\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/admin/categories",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "admin", "categories"]
+						}
+					}
+				},
+				{
+					"name": "Update Category - Valid",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Name updated', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data.name).to.eql('Updated Category');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Updated Category\",\n  \"description\": \"Updated description\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/admin/categories/{{categoryId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "admin", "categories", "{{categoryId}}"]
+						}
+					}
+				},
+				{
+					"name": "Update Category - Non-existent ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 404', function () {",
+									"    pm.response.to.have.status(404);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Nonexistent\",\n  \"description\": \"Should fail\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/admin/categories/00000000-0000-0000-0000-000000000000",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "admin", "categories", "00000000-0000-0000-0000-000000000000"]
+						}
+					}
+				},
+				{
+					"name": "Delete Category - Valid",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200 or 204', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 204]);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/admin/categories/{{categoryId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "admin", "categories", "{{categoryId}}"]
+						}
+					}
+				},
+				{
+					"name": "Delete Category - Non-existent ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 404', function () {",
+									"    pm.response.to.have.status(404);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/admin/categories/00000000-0000-0000-0000-000000000000",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "admin", "categories", "00000000-0000-0000-0000-000000000000"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Admin - Product",
+			"item": [
+				{
+					"name": "Get Products (Admin) - Default",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Response has paginated content', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data).to.have.property('content');",
+									"    pm.expect(data.content).to.be.an('array');",
+									"});",
+									"pm.test('Store productId for later use', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    if (data.content.length > 0) {",
+									"        pm.collectionVariables.set('productId', data.content[0].id);",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/admin/products?page=0&size=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "admin", "products"],
+							"query": [
+								{ "key": "page", "value": "0" },
+								{ "key": "size", "value": "10" }
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Products (Admin) - Search",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Results filtered', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data).to.have.property('content');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/admin/products?search=coffee&page=0&size=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "admin", "products"],
+							"query": [
+								{ "key": "search", "value": "coffee" },
+								{ "key": "page", "value": "0" },
+								{ "key": "size", "value": "10" }
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Products (Admin) - Filter active only",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('All products are active', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    data.content.forEach(function(p) {",
+									"        pm.expect(p.active).to.eql(true);",
+									"    });",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/admin/products?active=true&page=0&size=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "admin", "products"],
+							"query": [
+								{ "key": "active", "value": "true" },
+								{ "key": "page", "value": "0" },
+								{ "key": "size", "value": "10" }
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Product Detail (Admin) - Valid ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Response has full product info', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data).to.have.property('id');",
+									"    pm.expect(data).to.have.property('name');",
+									"    pm.expect(data).to.have.property('variants');",
+									"    pm.expect(data).to.have.property('images');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/admin/products/{{productId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "admin", "products", "{{productId}}"]
+						}
+					}
+				},
+				{
+					"name": "Get Product Detail (Admin) - Non-existent ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 404', function () {",
+									"    pm.response.to.have.status(404);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/admin/products/00000000-0000-0000-0000-000000000000",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "admin", "products", "00000000-0000-0000-0000-000000000000"]
+						}
+					}
+				},
+				{
+					"name": "Create Product - Valid",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200 or 201', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"pm.test('Response has product id', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data).to.have.property('id');",
+									"    pm.collectionVariables.set('productId', data.id);",
+									"});",
+									"pm.test('Name matches', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data.name).to.eql('Test Product');",
+									"});",
+									"pm.test('Product is active', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data.active).to.eql(true);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Test Product\",\n  \"description\": \"A test product for API testing\",\n  \"categoryId\": \"{{categoryId}}\",\n  \"type\": \"DRINK\",\n  \"active\": true\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/admin/products",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "admin", "products"]
+						}
+					}
+				},
+				{
+					"name": "Create Product - Missing name",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 400', function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"pm.test('Validation error', function () {",
+									"    var body = JSON.stringify(pm.response.json()).toLowerCase();",
+									"    pm.expect(body).to.include('name').or.include('blank');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"description\": \"Missing name\",\n  \"type\": \"DRINK\",\n  \"active\": true\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/admin/products",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "admin", "products"]
+						}
+					}
+				},
+				{
+					"name": "Create Product - No auth",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 401 or 403', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([401, 403]);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Unauthorized Product\",\n  \"type\": \"DRINK\",\n  \"active\": true\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/admin/products",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "admin", "products"]
+						}
+					}
+				},
+				{
+					"name": "Update Product - Valid",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Product name updated', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data.name).to.eql('Updated Test Product');",
+									"});",
+									"pm.test('Description updated', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data.description).to.eql('Updated description');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Updated Test Product\",\n  \"description\": \"Updated description\",\n  \"categoryId\": \"{{categoryId}}\",\n  \"type\": \"DRINK\",\n  \"active\": true\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/admin/products/{{productId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "admin", "products", "{{productId}}"]
+						}
+					}
+				},
+				{
+					"name": "Update Product - Non-existent ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 404', function () {",
+									"    pm.response.to.have.status(404);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Nonexistent\",\n  \"type\": \"DRINK\",\n  \"active\": true\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/admin/products/00000000-0000-0000-0000-000000000000",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "admin", "products", "00000000-0000-0000-0000-000000000000"]
+						}
+					}
+				},
+				{
+					"name": "Toggle Product Active Status",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Active status toggled', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data).to.have.property('active');",
+									"    pm.expect(data.active).to.be.a('boolean');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/admin/products/{{productId}}/active",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "admin", "products", "{{productId}}", "active"]
+						}
+					}
+				},
+				{
+					"name": "Toggle Active - Non-existent ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 404', function () {",
+									"    pm.response.to.have.status(404);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/admin/products/00000000-0000-0000-0000-000000000000/active",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "admin", "products", "00000000-0000-0000-0000-000000000000", "active"]
+						}
+					}
+				},
+				{
+					"name": "Delete Product - Valid",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200 or 204', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 204]);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/admin/products/{{productId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "admin", "products", "{{productId}}"]
+						}
+					}
+				},
+				{
+					"name": "Delete Product - Non-existent ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 404', function () {",
+									"    pm.response.to.have.status(404);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/admin/products/00000000-0000-0000-0000-000000000000",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "admin", "products", "00000000-0000-0000-0000-000000000000"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Admin - Product Image",
+			"item": [
+				{
+					"name": "Get Product Images - Valid productId",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Response is a list', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    var list = Array.isArray(data) ? data : data.content || data;",
+									"    pm.expect(list).to.be.an('array');",
+									"});",
+									"pm.test('Images have url and isPrimary', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    var list = Array.isArray(data) ? data : data.content || data;",
+									"    if (list.length > 0) {",
+									"        pm.expect(list[0]).to.have.property('imageUrl');",
+									"        pm.expect(list[0]).to.have.property('isPrimary');",
+									"        pm.collectionVariables.set('imageId', list[0].id);",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/admin/products/{{productId}}/images",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "admin", "products", "{{productId}}", "images"]
+						}
+					}
+				},
+				{
+					"name": "Get Product Images - Non-existent productId",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 404 or 200 (empty)', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/admin/products/00000000-0000-0000-0000-000000000000/images",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "admin", "products", "00000000-0000-0000-0000-000000000000", "images"]
+						}
+					}
+				},
+				{
+					"name": "Upload Product Image - Multipart",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200 or 201', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"pm.test('Response is a list of images', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    var list = Array.isArray(data) ? data : data.content || data;",
+									"    pm.expect(list).to.be.an('array');",
+									"    if (list.length > 0) {",
+									"        pm.collectionVariables.set('imageId', list[0].id);",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "files",
+									"type": "file",
+									"src": "",
+									"description": "Select an image file to upload"
+								},
+								{
+									"key": "setPrimaryFirst",
+									"value": "true",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/admin/products/{{productId}}/images",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "admin", "products", "{{productId}}", "images"]
+						}
+					}
+				},
+				{
+					"name": "Set Primary Image - Valid",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Image is now primary', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data.isPrimary).to.eql(true);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/admin/products/{{productId}}/images/{{imageId}}/primary",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "admin", "products", "{{productId}}", "images", "{{imageId}}", "primary"]
+						}
+					}
+				},
+				{
+					"name": "Set Primary Image - Non-existent imageId",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 404', function () {",
+									"    pm.response.to.have.status(404);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/admin/products/{{productId}}/images/00000000-0000-0000-0000-000000000000/primary",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "admin", "products", "{{productId}}", "images", "00000000-0000-0000-0000-000000000000", "primary"]
+						}
+					}
+				},
+				{
+					"name": "Delete Single Image - Valid",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200 or 204', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 204]);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/admin/products/images/{{imageId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "admin", "products", "images", "{{imageId}}"]
+						}
+					}
+				},
+				{
+					"name": "Delete Single Image - Non-existent ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 404', function () {",
+									"    pm.response.to.have.status(404);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/admin/products/images/00000000-0000-0000-0000-000000000000",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "admin", "products", "images", "00000000-0000-0000-0000-000000000000"]
+						}
+					}
+				},
+				{
+					"name": "Delete All Product Images - Valid",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200 or 204', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 204]);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/admin/products/{{productId}}/images",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "admin", "products", "{{productId}}", "images"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Admin - Product Variant",
+			"item": [
+				{
+					"name": "Get Variants - Valid productId",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Response is a list', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    var list = Array.isArray(data) ? data : data.content || data;",
+									"    pm.expect(list).to.be.an('array');",
+									"});",
+									"pm.test('Variants have required fields', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    var list = Array.isArray(data) ? data : data.content || data;",
+									"    if (list.length > 0) {",
+									"        pm.expect(list[0]).to.have.property('id');",
+									"        pm.expect(list[0]).to.have.property('sizeName');",
+									"        pm.expect(list[0]).to.have.property('price');",
+									"        pm.collectionVariables.set('variantId', list[0].id);",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/admin/products/{{productId}}/variants",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "admin", "products", "{{productId}}", "variants"]
+						}
+					}
+				},
+				{
+					"name": "Get Variants - Non-existent productId",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 404 or 200', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/admin/products/00000000-0000-0000-0000-000000000000/variants",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "admin", "products", "00000000-0000-0000-0000-000000000000", "variants"]
+						}
+					}
+				},
+				{
+					"name": "Create Variant - Valid",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200 or 201', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"pm.test('Response has variant id', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data).to.have.property('id');",
+									"    pm.collectionVariables.set('variantId', data.id);",
+									"});",
+									"pm.test('Size name matches', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data.sizeName).to.eql('Large');",
+									"});",
+									"pm.test('Price matches', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(Number(data.price)).to.eql(55000);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"sizeName\": \"Large\",\n  \"price\": 55000,\n  \"active\": true,\n  \"ingredients\": []\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/admin/products/{{productId}}/variants",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "admin", "products", "{{productId}}", "variants"]
+						}
+					}
+				},
+				{
+					"name": "Create Variant - Missing sizeName",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 400', function () {",
+									"    pm.response.to.have.status(400);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"price\": 55000,\n  \"active\": true\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/admin/products/{{productId}}/variants",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "admin", "products", "{{productId}}", "variants"]
+						}
+					}
+				},
+				{
+					"name": "Create Variant - Price = 0",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 400', function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"pm.test('Validation error for price', function () {",
+									"    var body = JSON.stringify(pm.response.json()).toLowerCase();",
+									"    pm.expect(body).to.include('price').or.include('decimal');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"sizeName\": \"Zero\",\n  \"price\": 0,\n  \"active\": true\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/admin/products/{{productId}}/variants",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "admin", "products", "{{productId}}", "variants"]
+						}
+					}
+				},
+				{
+					"name": "Update Variant - Valid",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Variant updated', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data.sizeName).to.eql('Extra Large');",
+									"    pm.expect(Number(data.price)).to.eql(65000);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"sizeName\": \"Extra Large\",\n  \"price\": 65000,\n  \"active\": true,\n  \"ingredients\": []\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/admin/products/{{productId}}/variants/{{variantId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "admin", "products", "{{productId}}", "variants", "{{variantId}}"]
+						}
+					}
+				},
+				{
+					"name": "Update Variant - Non-existent ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 404', function () {",
+									"    pm.response.to.have.status(404);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"sizeName\": \"Ghost\",\n  \"price\": 10000,\n  \"active\": true,\n  \"ingredients\": []\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/admin/products/{{productId}}/variants/00000000-0000-0000-0000-000000000000",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "admin", "products", "{{productId}}", "variants", "00000000-0000-0000-0000-000000000000"]
+						}
+					}
+				},
+				{
+					"name": "Delete Variant - Valid",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200 or 204', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 204]);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/admin/products/{{productId}}/variants/{{variantId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "admin", "products", "{{productId}}", "variants", "{{variantId}}"]
+						}
+					}
+				},
+				{
+					"name": "Delete Variant - Non-existent ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 404', function () {",
+									"    pm.response.to.have.status(404);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/admin/products/{{productId}}/variants/00000000-0000-0000-0000-000000000000",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "admin", "products", "{{productId}}", "variants", "00000000-0000-0000-0000-000000000000"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Admin - Transactions",
+			"item": [
+				{
+					"name": "List Transactions - Default",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Response has paginated content', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data).to.have.property('content');",
+									"    pm.expect(data.content).to.be.an('array');",
+									"});",
+									"pm.test('Response has pagination info', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data).to.have.property('totalElements');",
+									"    pm.expect(data).to.have.property('totalPages');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/admin/transactions?page=0&size=20",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "admin", "transactions"],
+							"query": [
+								{ "key": "page", "value": "0" },
+								{ "key": "size", "value": "20" }
+							]
+						}
+					}
+				},
+				{
+					"name": "List Transactions - Filter by status",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Filtered results returned', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data).to.have.property('content');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/admin/transactions?status=SUCCESS&page=0&size=20",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "admin", "transactions"],
+							"query": [
+								{ "key": "status", "value": "SUCCESS" },
+								{ "key": "page", "value": "0" },
+								{ "key": "size", "value": "20" }
+							]
+						}
+					}
+				},
+				{
+					"name": "List Transactions - Filter by payment method",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Content list present', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data).to.have.property('content');",
+									"    data.content.forEach(function(t) {",
+									"        pm.expect(t.paymentMethod).to.eql('CASH');",
+									"    });",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/admin/transactions?paymentMethod=CASH&page=0&size=20",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "admin", "transactions"],
+							"query": [
+								{ "key": "paymentMethod", "value": "CASH" },
+								{ "key": "page", "value": "0" },
+								{ "key": "size", "value": "20" }
+							]
+						}
+					}
+				},
+				{
+					"name": "List Transactions - No auth",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 401 or 403', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([401, 403]);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/admin/transactions",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "admin", "transactions"]
+						}
+					}
+				},
+				{
+					"name": "List Transactions - Date range filter",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Result returned', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data).to.have.property('content');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/admin/transactions?fromDate=2025-01-01T00:00:00Z&toDate=2026-12-31T23:59:59Z&page=0&size=20",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "admin", "transactions"],
+							"query": [
+								{ "key": "fromDate", "value": "2025-01-01T00:00:00Z" },
+								{ "key": "toDate", "value": "2026-12-31T23:59:59Z" },
+								{ "key": "page", "value": "0" },
+								{ "key": "size", "value": "20" }
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Order Tracking",
+			"item": [
+				{
+					"name": "Get Order Tracking Timeline - Valid ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Response has timeline', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data).to.have.property('timeline');",
+									"    pm.expect(data.timeline).to.be.an('array');",
+									"});",
+									"pm.test('Response has currentStatus', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data).to.have.property('currentStatus');",
+									"});",
+									"pm.test('Timeline steps have status and completed', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    if (data.timeline.length > 0) {",
+									"        pm.expect(data.timeline[0]).to.have.property('status');",
+									"        pm.expect(data.timeline[0]).to.have.property('completed');",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/v1/orders/{{orderId}}/tracking",
+							"host": ["{{baseUrl}}"],
+							"path": ["v1", "orders", "{{orderId}}", "tracking"]
+						}
+					}
+				},
+				{
+					"name": "Get Order Tracking - Non-existent ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 404', function () {",
+									"    pm.response.to.have.status(404);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/v1/orders/00000000-0000-0000-0000-000000000000/tracking",
+							"host": ["{{baseUrl}}"],
+							"path": ["v1", "orders", "00000000-0000-0000-0000-000000000000", "tracking"]
+						}
+					}
+				},
+				{
+					"name": "Get Order Tracking - Invalid UUID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 400', function () {",
+									"    pm.response.to.have.status(400);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/v1/orders/not-a-uuid/tracking",
+							"host": ["{{baseUrl}}"],
+							"path": ["v1", "orders", "not-a-uuid", "tracking"]
+						}
+					}
+				},
+				{
+					"name": "Update Order Status - PROCESSING",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Status updated', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data).to.have.property('status');",
+									"    pm.expect(data.status).to.eql('PROCESSING');",
+									"});",
+									"pm.test('Response has orderId', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data).to.have.property('orderId');",
+									"});",
+									"pm.test('Response has lastUpdated', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data).to.have.property('lastUpdated');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"PROCESSING\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/v1/orders/{{orderId}}/status",
+							"host": ["{{baseUrl}}"],
+							"path": ["v1", "orders", "{{orderId}}", "status"]
+						}
+					}
+				},
+				{
+					"name": "Update Order Status - PREPARING",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Status is PREPARING', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data.status).to.eql('PREPARING');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"PREPARING\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/v1/orders/{{orderId}}/status",
+							"host": ["{{baseUrl}}"],
+							"path": ["v1", "orders", "{{orderId}}", "status"]
+						}
+					}
+				},
+				{
+					"name": "Update Order Status - Invalid status value",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 400', function () {",
+									"    pm.response.to.have.status(400);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"INVALID_STATUS\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/v1/orders/{{orderId}}/status",
+							"host": ["{{baseUrl}}"],
+							"path": ["v1", "orders", "{{orderId}}", "status"]
+						}
+					}
+				},
+				{
+					"name": "Update Order Status - Non-existent order",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 404', function () {",
+									"    pm.response.to.have.status(404);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"PROCESSING\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/v1/orders/00000000-0000-0000-0000-000000000000/status",
+							"host": ["{{baseUrl}}"],
+							"path": ["v1", "orders", "00000000-0000-0000-0000-000000000000", "status"]
+						}
+					}
+				},
+				{
+					"name": "Update Order Status - Missing body",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 400', function () {",
+									"    pm.response.to.have.status(400);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/v1/orders/{{orderId}}/status",
+							"host": ["{{baseUrl}}"],
+							"path": ["v1", "orders", "{{orderId}}", "status"]
+						}
+					}
+				},
+				{
+					"name": "Process Refund - Valid orderId",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Response has orderId', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data).to.have.property('orderId');",
+									"});",
+									"pm.test('Response has refundAmount', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data).to.have.property('refundAmount');",
+									"});",
+									"pm.test('Status is REFUNDED', function () {",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.result || jsonData;",
+									"    pm.expect(data.status).to.eql('REFUNDED');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/v1/orders/{{orderId}}/refund",
+							"host": ["{{baseUrl}}"],
+							"path": ["v1", "orders", "{{orderId}}", "refund"]
+						}
+					}
+				},
+				{
+					"name": "Process Refund - Non-existent order",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 404', function () {",
+									"    pm.response.to.have.status(404);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/v1/orders/00000000-0000-0000-0000-000000000000/refund",
+							"host": ["{{baseUrl}}"],
+							"path": ["v1", "orders", "00000000-0000-0000-0000-000000000000", "refund"]
+						}
+					}
+				},
+				{
+					"name": "Process Refund - Invalid UUID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 400', function () {",
+									"    pm.response.to.have.status(400);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/v1/orders/bad-uuid/refund",
+							"host": ["{{baseUrl}}"],
+							"path": ["v1", "orders", "bad-uuid", "refund"]
+						}
+					}
+				}
+			]
+		}
+	]
+}

@@ -13,7 +13,7 @@ import java.util.UUID;
 public class CategoryRequest {
 
     @NotBlank(message = "Category name must not be blank")
-    @Size(max = 120, message = "Category name must be 120 characters or fewer")
+    @Size(max = 50, message = "Category name must be 50 characters or fewer")
     private String name;
 
     @Size(max = 500, message = "Description must be 500 characters or fewer")

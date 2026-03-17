@@ -57,7 +57,7 @@ public class AccountServiceImpl implements AccountService {
             RoleService roleService,
             AccountRoleService accountRoleService,
             @Autowired(required = false) MailSenderService mailSenderService,
-            RegisterRedisService registerRedisService) {
+            @Autowired(required = false) RegisterRedisService registerRedisService) {
         this.accountRepository = accountRepository;
         this.profileRepository = profileRepository;
         this.accountMapper = accountMapper;
@@ -297,6 +297,10 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public void initiateRegistration(RegisterRequestDTO registerRequestDTO) {
+        if (registerRedisService == null) {
+            throw new ApiException(ErrorCode.SERVICE_UNAVAILABLE,
+                    "Registration feature requires Redis to be configured");
+        }
         String email = registerRequestDTO.email();
 
         if (accountRepository.existsByEmail(email)) {
@@ -325,6 +329,10 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public void resendOtp(String email) {
+        if (registerRedisService == null) {
+            throw new ApiException(ErrorCode.SERVICE_UNAVAILABLE,
+                    "Registration feature requires Redis to be configured");
+        }
 
         // Flow để resend otp, là check data của email này còn trong redis không
         // Nếu còn thì lấy email trong data đó để gửi lại otp mới
@@ -355,6 +363,10 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public AccountResponseForUserDTO verifyOtpAndRegister(VerifyOTPRequestDTO verifyOTPRequestDTO) {
+        if (registerRedisService == null) {
+            throw new ApiException(ErrorCode.SERVICE_UNAVAILABLE,
+                    "Registration feature requires Redis to be configured");
+        }
         String email = verifyOTPRequestDTO.email();
         String otp = verifyOTPRequestDTO.otp();
 

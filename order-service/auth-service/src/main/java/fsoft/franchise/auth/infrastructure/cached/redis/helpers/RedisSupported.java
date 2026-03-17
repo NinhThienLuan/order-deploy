@@ -2,6 +2,8 @@ package fsoft.franchise.auth.infrastructure.cached.redis.helpers;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
@@ -10,6 +12,8 @@ import java.time.Duration;
 @Slf4j
 @Component
 @RequiredArgsConstructor
+@ConditionalOnClass(StringRedisTemplate.class)
+@ConditionalOnProperty(name = "spring.data.redis.host", matchIfMissing = false)
 public class RedisSupported {
 
     private final StringRedisTemplate stringRedisTemplate;
@@ -47,12 +51,10 @@ public class RedisSupported {
         }
     }
 
-
     public boolean exists(String key) {
         try {
             return Boolean.TRUE.equals(stringRedisTemplate.hasKey(key));
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             log.error("Failed to check existence of key {} in Redis: {}", key, e.getMessage());
             return false;
         }
@@ -66,6 +68,5 @@ public class RedisSupported {
             return null;
         }
     }
-
 
 }

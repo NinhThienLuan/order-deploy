@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 
 @Data
 @Builder
@@ -15,6 +16,7 @@ import java.util.List;
 @AllArgsConstructor
 public class PaymentListResponse {
     private List<PaymentRecord> data;
+    private BigDecimal totalAmount;
     private PaginationInfo pagination;
 
     @Data
@@ -23,6 +25,7 @@ public class PaymentListResponse {
     @AllArgsConstructor
     public static class PaymentRecord {
         private String transactionId;
+        private UUID storeId;
         private String orderId;
         private String orderNumber;
         private String customerName;
@@ -44,4 +47,3 @@ public class PaymentListResponse {
         private int pageSize;
     }
 }
-

@@ -23,75 +23,74 @@ import java.util.UUID;
 @RequestMapping("/api/v1/refunds")
 @Validated
 @RequiredArgsConstructor
-@Tag(name = "Refunds", description = "Refund request management — FRANCHISE_ADMIN and STORE_MANAGER only")
+@Tag(name = "Refunds", description = "Refund request management. Permission: ADMIN, MANAGER for review endpoints.")
 public class RefundController {
 
-    private final RefundService refundService;
+        private final RefundService refundService;
 
-    /**
-     * GET /v1/refunds/pending — Get all pending refund requests
-     * Only accessible by FRANCHISE_ADMIN and STORE_MANAGER
-     */
-    @GetMapping("/pending")
-    @Operation(summary = "Get pending refunds", description = "Returns all refund requests with PENDING status.")
-    @PreAuthorize("hasAnyRole('FRANCHISE_ADMIN', 'STORE_MANAGER')")
-    public ResponseEntity<ApiResponse<List<RefundResponse>>> getAllPendingRefunds(
-            HttpServletRequest request) {
-        List<RefundResponse> result = refundService.getAllPendingRefunds();
+        /**
+         * GET /v1/refunds/pending — Get all pending refund requests
+         * Only accessible by ADMIN and MANAGER
+         */
+        @GetMapping("/pending")
+        @Operation(summary = "Get pending refunds", description = "Returns all refund requests with PENDING status. Permission: ADMIN, MANAGER.")
+        @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'POS')")
+        public ResponseEntity<ApiResponse<List<RefundResponse>>> getAllPendingRefunds(
+                        HttpServletRequest request) {
+                List<RefundResponse> result = refundService.getAllPendingRefunds();
 
-        return ResponseEntity.ok()
-                .body(ApiResponse.<List<RefundResponse>>builder()
-                        .code(200)
-                        .message(CommonErrorCode.SUCCESS.getMessage())
-                        .result(result)
-                        .timestamp(Instant.now())
-                        .path(request.getRequestURI())
-                        .build());
-    }
+                return ResponseEntity.ok()
+                                .body(ApiResponse.<List<RefundResponse>>builder()
+                                                .code(200)
+                                                .message(CommonErrorCode.SUCCESS.getMessage())
+                                                .result(result)
+                                                .timestamp(Instant.now())
+                                                .path(request.getRequestURI())
+                                                .build());
+        }
 
-    /**
-     * PATCH /v1/refunds/{id}/approve — Approve a refund request
-     * Only accessible by FRANCHISE_ADMIN and STORE_MANAGER
-     */
-    @PatchMapping("/{id}/approve")
-    @Operation(summary = "Approve refund", description = "Approve a pending refund request and trigger the refund process.")
-    @PreAuthorize("hasAnyRole('FRANCHISE_ADMIN', 'STORE_MANAGER')")
-    public ResponseEntity<ApiResponse<RefundResponse>> approveRefund(
-            HttpServletRequest request,
-            @PathVariable("id") UUID id) {
-        RefundResponse result = refundService.approveRefund(id);
+        /**
+         * PATCH /v1/refunds/{id}/approve — Approve a refund request
+         * Only accessible by ADMIN and MANAGER
+         */
+        @PatchMapping("/{id}/approve")
+        @Operation(summary = "Approve refund", description = "Approve a pending refund request and trigger the refund process. Permission: ADMIN, MANAGER.")
+        @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'POS')")
+        public ResponseEntity<ApiResponse<RefundResponse>> approveRefund(
+                        HttpServletRequest request,
+                        @PathVariable("id") UUID id) {
+                RefundResponse result = refundService.approveRefund(id);
 
-        return ResponseEntity.ok()
-                .body(ApiResponse.<RefundResponse>builder()
-                        .code(200)
-                        .message("Refund approved successfully")
-                        .result(result)
-                        .timestamp(Instant.now())
-                        .path(request.getRequestURI())
-                        .build());
-    }
+                return ResponseEntity.ok()
+                                .body(ApiResponse.<RefundResponse>builder()
+                                                .code(200)
+                                                .message("Refund approved successfully")
+                                                .result(result)
+                                                .timestamp(Instant.now())
+                                                .path(request.getRequestURI())
+                                                .build());
+        }
 
-    /**
-     * PATCH /v1/refunds/{id}/decline — Decline a refund request
-     * Only accessible by FRANCHISE_ADMIN and STORE_MANAGER
-     */
-    @PatchMapping("/{id}/decline")
-    @Operation(summary = "Decline refund", description = "Decline a pending refund request with a reason.")
-    @PreAuthorize("hasAnyRole('FRANCHISE_ADMIN', 'STORE_MANAGER')")
-    public ResponseEntity<ApiResponse<RefundResponse>> declineRefund(
-            HttpServletRequest request,
-            @PathVariable("id") UUID id,
-            @Valid @RequestBody DeclineRefundRequest requestDTO) {
-        RefundResponse result = refundService.declineRefund(id, requestDTO.declineReason());
+        /**
+         * PATCH /v1/refunds/{id}/decline — Decline a refund request
+         * Only accessible by ADMIN and MANAGER
+         */
+        @PatchMapping("/{id}/decline")
+        @Operation(summary = "Decline refund", description = "Decline a pending refund request with a reason. Permission: ADMIN, MANAGER.")
+        @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'POS')")
+        public ResponseEntity<ApiResponse<RefundResponse>> declineRefund(
+                        HttpServletRequest request,
+                        @PathVariable("id") UUID id,
+                        @Valid @RequestBody DeclineRefundRequest requestDTO) {
+                RefundResponse result = refundService.declineRefund(id, requestDTO.declineReason());
 
-        return ResponseEntity.ok()
-                .body(ApiResponse.<RefundResponse>builder()
-                        .code(200)
-                        .message("Refund declined successfully")
-                        .result(result)
-                        .timestamp(Instant.now())
-                        .path(request.getRequestURI())
-                        .build());
-    }
+                return ResponseEntity.ok()
+                                .body(ApiResponse.<RefundResponse>builder()
+                                                .code(200)
+                                                .message("Refund declined successfully")
+                                                .result(result)
+                                                .timestamp(Instant.now())
+                                                .path(request.getRequestURI())
+                                                .build());
+        }
 }
-

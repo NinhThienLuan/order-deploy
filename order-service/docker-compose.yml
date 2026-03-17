@@ -104,7 +104,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       # JWT
-      JWT_SECRET: ${JWT_SECRET:-1xk-i7i6bJnZ_VBmzOMNNTe6bxk_RhMgZSX56Ye0QK4WATtCu64ECFhFpRlUzAOwM0m-IJ77blkfkIoWflfRWA}
+      JWT_SECRET: ${JWT_SECRET:-1xk+i7i6bJnZ/VBmzOMNNTe6bxk/RhMgZSX56Ye0QK4WATtCu64ECFhFpRlUzAOwM0m+IJ77blkfkIoWflfRWA==}
       JWT_ACCESS_TTL: ${JWT_ACCESS_TTL:-900000}
       JWT_REFRESH_TTL: ${JWT_REFRESH_TTL:-604800000}
     ports:
@@ -132,6 +132,7 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: prod
       EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      JWT_SECRET: ${JWT_SECRET:-1xk+i7i6bJnZ/VBmzOMNNTe6bxk/RhMgZSX56Ye0QK4WATtCu64ECFhFpRlUzAOwM0m+IJ77blkfkIoWflfRWA==}
     ports:
       - "8080:8080"
     healthcheck:
@@ -146,8 +147,8 @@ services:
   # Order Service (Backend)
   order-service:
     build:
-      context: .
-      dockerfile: backend/Dockerfile
+      context: ./product-order-payment
+      dockerfile: Dockerfile
     container_name: franchise-order-service
     restart: unless-stopped
     depends_on:
@@ -163,7 +164,7 @@ services:
       DB_USERNAME: franchise
       DB_PASSWORD: ${DB_PASSWORD:-franchise_secret}
       # JWT
-      JWT_SECRET: ${JWT_SECRET:-1xk-i7i6bJnZ_VBmzOMNNTe6bxk_RhMgZSX56Ye0QK4WATtCu64ECFhFpRlUzAOwM0m-IJ77blkfkIoWflfRWA}
+      JWT_SECRET: ${JWT_SECRET:-1xk+i7i6bJnZ/VBmzOMNNTe6bxk/RhMgZSX56Ye0QK4WATtCu64ECFhFpRlUzAOwM0m+IJ77blkfkIoWflfRWA==}
       # MoMo
       MOMO_RETURN_URL: http://api-gateway:8080/momo/return
     # ports:
@@ -183,3 +184,5 @@ networks:
 
 volumes:
   mysql-data:
+  postgres-data:
+  redis-data:

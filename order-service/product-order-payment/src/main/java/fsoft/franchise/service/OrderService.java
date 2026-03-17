@@ -1,8 +1,6 @@
 package fsoft.franchise.service;
 
 import fsoft.franchise.dto.orders.*;
-import fsoft.franchise.dto.payments.PaymentRequest;
-import fsoft.franchise.dto.payments.PaymentResponse;
 // import fsoft.franchise.model.dto.*;
 import org.springframework.stereotype.Service;
 
@@ -15,22 +13,23 @@ import java.util.Optional;
 @Service
 public interface OrderService {
 
-    public OrderCancelResponse cancelOrder(UUID orderId, UUID userId);
+    public OrderCancelResponse cancelOrder(UUID orderId, UUID userId, String role);
 
     public OrderDetailResponse getOrderDetail(String orderId, UUID currentUserId, String role);
 
     /**
-     * Get order status. Customer chỉ xem được order của mình; FRANCHISE_ADMIN và
-     * STORE_MANAGER xem được mọi order.
+     * Get order status. Customer chỉ xem được order của mình; ADMIN và
+     * MANAGER xem được mọi order.
      */
     OrderStatusResponse getStatus(UUID orderId, UUID userId, String role);
 
     /**
-     * Order History: pagination + filter. Chỉ FRANCHISE_ADMIN và STORE_MANAGER được gọi.
+     * Order History: pagination + filter. Chỉ ADMIN và MANAGER được
+     * gọi.
      */
     OrderHistoryPage getOrderHistory(int page, int size,
             Optional<String> status,
-            Optional<Long> branchId,
+            Optional<UUID> storeId,
             Optional<LocalDate> fromDate,
             Optional<LocalDate> toDate,
             String role);
@@ -43,9 +42,17 @@ public interface OrderService {
     /** Returns all possible order statuses. */
     List<OrderStatus> getOrderStatuses();
 
+    /** Returns all relevant enums for order creation/management. */
+    OrderEnumsResponse getOrderEnums();
+
     CreateOrderResponse createOrder(CreateOrderRequest request, UUID customerId);
 
-    PaymentResponse processPayment(UUID orderId, PaymentRequest request, UUID customerId, String ipAddress);
 
-    PaymentResponse confirmPayment(UUID orderId, UUID paymentId, boolean success, UUID customerId);
+    EstimateResponse estimatePreparationTime(UUID storeId, int itemCount);
+
+    FlagOrderResponse flagOrder(UUID orderId, FlagOrderRequest request, UUID currentUserId, String role,
+            Long currentUserStoreId);
+
+    CreatePosOrderResponse createPosOrder(CreatePosOrderRequest request, UUID staffId);
+    UpdatePosOrderResponse updatePosOrder(UUID orderId, UpdatePosOrderRequest request, UUID staffId);
 }

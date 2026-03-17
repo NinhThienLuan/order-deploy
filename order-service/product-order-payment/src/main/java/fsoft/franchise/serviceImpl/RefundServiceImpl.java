@@ -3,6 +3,7 @@ package fsoft.franchise.serviceImpl;
 import fsoft.franchise.common.exception.ApiException;
 import fsoft.franchise.exception.OrderErrorCode;
 import fsoft.franchise.exception.RefundErrorCode;
+import fsoft.franchise.dto.payments.OrderRefundResponse;
 import fsoft.franchise.dto.payments.RefundRequest;
 import fsoft.franchise.dto.payments.RefundResponse;
 import fsoft.franchise.entity.OrderEntity;
@@ -17,11 +18,14 @@ import fsoft.franchise.repository.OrderRepository;
 import fsoft.franchise.repository.PaymentRepository;
 import fsoft.franchise.repository.RefundRepository;
 import fsoft.franchise.repository.TransactionRepository;
+import fsoft.franchise.service.OrderTrackingService;
 import fsoft.franchise.service.RefundService;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -34,6 +38,7 @@ public class RefundServiceImpl implements RefundService {
     private final OrderRepository orderRepository;
     private final PaymentRepository paymentRepository;
     private final TransactionRepository transactionRepository;
+    private final OrderTrackingService orderTrackingService;
 
     @Override
     @Transactional
@@ -41,7 +46,7 @@ public class RefundServiceImpl implements RefundService {
         OrderEntity order = orderRepository.findById(requestDTO.orderId())
                 .orElseThrow(() -> new ApiException(OrderErrorCode.ORDER_NOT_FOUND));
 
-        if (!order.getCustomer().getId().equals(customerId)) {
+        if (!order.getCustomerId().equals(customerId)) {
             throw new ApiException(OrderErrorCode.ORDER_NOT_OWNED);
         }
         if (order.getStatus() != OrderStatus.PAID
@@ -117,7 +122,7 @@ public class RefundServiceImpl implements RefundService {
         paymentRepository.save(payment);
 
         OrderEntity order = refund.getOrder();
-        order.setStatus(OrderStatus.CANCELED);
+        order.setStatus(OrderStatus.REFUNDED);
         orderRepository.save(order);
 
         return mapToResponseDTO(refund);
@@ -138,6 +143,61 @@ public class RefundServiceImpl implements RefundService {
         RefundEntity savedRefund = refundRepository.save(refund);
 
         return mapToResponseDTO(savedRefund);
+    }
+
+    @Override
+    @Transactional
+    public OrderRefundResponse processOrderRefund(UUID orderId, UUID performedBy) {
+        OrderEntity order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ApiException(OrderErrorCode.ORDER_NOT_FOUND));
+
+        if (order.getStatus() != OrderStatus.PAID
+                && order.getStatus() != OrderStatus.COMPLETED
+                && order.getStatus() != OrderStatus.READY) {
+            throw new ApiException(RefundErrorCode.INVALID_ORDER_STATUS_FOR_REFUND);
+        }
+
+        if (refundRepository.existsByOrderId(orderId)) {
+            throw new ApiException(RefundErrorCode.REFUND_ALREADY_EXISTS);
+        }
+
+        PaymentEntity payment = order.getPayments().stream()
+                .filter(p -> p.getStatus() == PaymentStatus.PAID)
+                .findFirst()
+                .orElseThrow(() -> new ApiException(RefundErrorCode.PAYMENT_NOT_FOUND));
+
+        BigDecimal amount = order.getTotalAmount();
+        RefundEntity refund = RefundEntity.builder()
+                .order(order)
+                .payment(payment)
+                .amount(amount)
+                .reason("Admin/Staff refund")
+                .status(RefundStatus.APPROVED)
+                .build();
+
+        RefundEntity savedRefund = refundRepository.save(refund);
+
+        TransactionEntity refundTxn = TransactionEntity.builder()
+                .payment(payment)
+                .type(TransactionType.REFUND)
+                .amount(amount.negate())
+                .build();
+        TransactionEntity savedTxn = transactionRepository.save(refundTxn);
+        savedRefund.setTransaction(savedTxn);
+        refundRepository.save(savedRefund);
+
+        payment.setStatus(PaymentStatus.REFUNDED);
+        paymentRepository.save(payment);
+
+        OrderStatus previousStatus = order.getStatus();
+        order.setStatus(OrderStatus.REFUNDED);
+        orderRepository.save(order);
+
+        orderTrackingService.sendTrackingUpdate(orderId, previousStatus, OrderStatus.REFUNDED, performedBy);
+
+        LocalDateTime refundTime = savedRefund.getCreatedAt() != null ? savedRefund.getCreatedAt()
+                : LocalDateTime.now();
+        return new OrderRefundResponse(order.getId(), OrderStatus.REFUNDED, amount, refundTime);
     }
 
     private RefundResponse mapToResponseDTO(RefundEntity refund) {

@@ -7,6 +7,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Service;
 
 import java.util.concurrent.TimeUnit;
@@ -14,6 +15,7 @@ import java.util.concurrent.TimeUnit;
 @Service
 @Slf4j
 @RequiredArgsConstructor
+@ConditionalOnBean(RedisSupported.class)
 public class RegisterRedisService {
 
     private final RedisSupported redisSupported;
@@ -29,7 +31,8 @@ public class RegisterRedisService {
     // Lấy Data ra và map ngược lại thành DTO
     public RegisterRequestDTO getRegisterData(String email) throws JsonProcessingException {
         String dataJson = redisSupported.getKey(String.format(RedisKeys.TEMP_DATA_REGISTER, email));
-        if (dataJson == null) return null; // Hết 30 phút là bay màu
+        if (dataJson == null)
+            return null; // Hết 30 phút là bay màu
 
         return objectMapper.readValue(dataJson, RegisterRequestDTO.class);
     }

@@ -25,7 +25,7 @@ import java.time.Duration;
 import java.time.Instant;
 
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
 public class AuthController {
     private static final String REFRESH_COOKIE = "refresh_token";
@@ -42,7 +42,7 @@ public class AuthController {
         LoginResponseDTO tokens = authService.login(body);
 
         ResponseCookie atCookie = createCookie(ACCESS_COOKIE, tokens.accessToken(), "/", jwtProperties.accessTtlMs());
-        ResponseCookie rtCookie = createCookie(REFRESH_COOKIE, tokens.refreshToken(), "/api/auth", jwtProperties.refreshTtlMs());
+        ResponseCookie rtCookie = createCookie(REFRESH_COOKIE, tokens.refreshToken(), "/api/v1/auth", jwtProperties.refreshTtlMs());
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, atCookie.toString())
@@ -68,7 +68,7 @@ public class AuthController {
         LoginResponseDTO tokens = authService.refresh(refreshToken);
 
         ResponseCookie atCookie = createCookie(ACCESS_COOKIE, tokens.accessToken(), "/", jwtProperties.accessTtlMs());
-        ResponseCookie rtCookie = createCookie(REFRESH_COOKIE, tokens.refreshToken(), "/api/auth", jwtProperties.refreshTtlMs());
+        ResponseCookie rtCookie = createCookie(REFRESH_COOKIE, tokens.refreshToken(), "/api/v1/auth", jwtProperties.refreshTtlMs());
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, atCookie.toString())
@@ -92,7 +92,7 @@ public class AuthController {
         }
 
         ResponseCookie clearAt = createCookie(ACCESS_COOKIE, "", "/", 0);
-        ResponseCookie clearRt = createCookie(REFRESH_COOKIE, "", "/api/auth", 0);
+        ResponseCookie clearRt = createCookie(REFRESH_COOKIE, "", "/api/v1/auth", 0);
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, clearAt.toString())
@@ -113,7 +113,7 @@ public class AuthController {
         authService.logoutAll(email);
 
         ResponseCookie clearAt = createCookie(ACCESS_COOKIE, "", "/", 0);
-        ResponseCookie clearRt = createCookie(REFRESH_COOKIE, "", "/api/auth", 0);
+        ResponseCookie clearRt = createCookie(REFRESH_COOKIE, "", "/api/v1/auth", 0);
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, clearAt.toString())
@@ -143,7 +143,7 @@ public class AuthController {
             @RequestBody @Valid ChangePasswordRequestDTO body) {
         authService.changePassword(body);
         ResponseCookie clearAt = createCookie(ACCESS_COOKIE, "", "/", 0);
-        ResponseCookie clearRt = createCookie(REFRESH_COOKIE, "", "/api/auth", 0);
+        ResponseCookie clearRt = createCookie(REFRESH_COOKIE, "", "/api/v1/auth", 0);
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, clearAt.toString())

@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 import fsoft.franchise.common.response.ApiResponse;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.Instant;
 import java.util.Map;
@@ -28,6 +30,8 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(ApiException.class)
     public ResponseEntity<ApiResponse<Object>> handleApiException(ApiException ex, HttpServletRequest request) {
         ErrorCode errorCode = ex.getErrorCode();
+        log.warn("Business error: method={} path={} code={} message={}",
+            request.getMethod(), request.getRequestURI(), errorCode.getCode(), ex.getMessage());
         return ResponseEntity.status(errorCode.getStatus())
                 .body(buildError(errorCode, ex.getMessage(), request.getRequestURI(), null));
 
@@ -40,6 +44,8 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             HttpServletRequest request) {
         Map<String, String> errors = new LinkedHashMap<>();
         ex.getConstraintViolations().forEach(v -> errors.put(v.getPropertyPath().toString(), v.getMessage()));
+        log.warn("Constraint violation: method={} path={} errors={}",
+            request.getMethod(), request.getRequestURI(), errors);
 
         ErrorCode ec = CommonErrorCode.VALIDATION_FAILED;
         return ResponseEntity.status(ec.getStatus())
@@ -59,6 +65,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         for (FieldError fe : ex.getBindingResult().getFieldErrors()) {
             errors.put(fe.getField(), fe.getDefaultMessage());
         }
+        log.warn("Method argument invalid: path={} errors={}", extractPath(request), errors);
 
         ErrorCode ec = CommonErrorCode.VALIDATION_FAILED;
         ApiResponse<Object> body = buildError(ec, "Validation failed", extractPath(request), errors);
@@ -72,6 +79,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             HttpHeaders headers,
             HttpStatusCode statusCode,
             WebRequest request) {
+        log.warn("Malformed request body: path={} reason={}", extractPath(request), ex.getMessage());
 
         ErrorCode ec = CommonErrorCode.INVALID_INPUT;
         ApiResponse<Object> body = buildError(ec, "Malformed JSON or invalid input", extractPath(request), null);
@@ -82,6 +90,10 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ApiResponse<Object>> handleAccessDenied(AccessDeniedException ex,
             HttpServletRequest request) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String principal = authentication != null ? authentication.getName() : "anonymous";
+        log.warn("Access denied: method={} path={} principal={} reason={}",
+            request.getMethod(), request.getRequestURI(), principal, ex.getMessage());
         ErrorCode ec = CommonErrorCode.FORBIDDEN;
         return ResponseEntity.status(ec.getStatus())
                 .body(buildError(ec, ec.getMessage(), request.getRequestURI(), null));

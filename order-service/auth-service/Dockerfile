@@ -2,15 +2,15 @@
 FROM maven:3.9-eclipse-temurin-21-alpine AS build
 WORKDIR /app
 
-# Copy parent pom and all module poms first (for Maven reactor)
-COPY ../pom.xml ./pom.xml
-COPY ../eureka-server/pom.xml ./eureka-server/pom.xml
-COPY ../api-gateway/pom.xml ./api-gateway/pom.xml
-COPY ../product-order-payment/pom.xml ./product-order-payment/pom.xml
-COPY ../auth-service/pom.xml ./auth-service/pom.xml
+# Copy parent pom and all module poms (for Maven reactor)
+COPY pom.xml ./pom.xml
+COPY eureka-server/pom.xml ./eureka-server/pom.xml
+COPY api-gateway/pom.xml ./api-gateway/pom.xml
+COPY product-order-payment/pom.xml ./product-order-payment/pom.xml
+COPY auth-service/pom.xml ./auth-service/pom.xml
 
-# Copy auth-service source and build
-COPY ../auth-service/src ./auth-service/src
+# Copy auth-service source
+COPY auth-service/src ./auth-service/src
 RUN mvn package -pl auth-service -DskipTests
 
 # Runtime stage

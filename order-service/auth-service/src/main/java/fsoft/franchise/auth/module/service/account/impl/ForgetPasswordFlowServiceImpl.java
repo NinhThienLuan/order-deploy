@@ -26,7 +26,7 @@ public class ForgetPasswordFlowServiceImpl implements ForgetPasswordFlowService 
 
     public ForgetPasswordFlowServiceImpl(
             @Autowired(required = false) MailSenderService mailSenderService,
-            ForgetPassRedisService forgetPassRedisService,
+            @Autowired(required = false) ForgetPassRedisService forgetPassRedisService,
             AccountService accountService,
             AccountRepository accountRepository,
             PasswordEncoder passwordEncoder) {
@@ -39,6 +39,10 @@ public class ForgetPasswordFlowServiceImpl implements ForgetPasswordFlowService 
 
     @Override
     public void processForgotPassword(String email) {
+        if (forgetPassRedisService == null) {
+            throw new ApiException(ErrorCode.SERVICE_UNAVAILABLE,
+                    "Password reset feature requires Redis to be configured");
+        }
 
         if (email == null) {
             throw new ApiException(ErrorCode.INVALID_INPUT, "Email cannot be null");
@@ -58,6 +62,10 @@ public class ForgetPasswordFlowServiceImpl implements ForgetPasswordFlowService 
 
     @Override
     public void resendOtp(String email) {
+        if (forgetPassRedisService == null) {
+            throw new ApiException(ErrorCode.SERVICE_UNAVAILABLE,
+                    "Password reset feature requires Redis to be configured");
+        }
         // Check email có tồn tại trong database không, nếu tồn tại thì tạo otp mới, lưu
         // vào redis và gửi otp mới về email
         AccountEntity account = accountService.getUserByEmail(email);
@@ -72,6 +80,10 @@ public class ForgetPasswordFlowServiceImpl implements ForgetPasswordFlowService 
 
     @Override
     public String generateVerifyToken(String email, String otp) {
+        if (forgetPassRedisService == null) {
+            throw new ApiException(ErrorCode.SERVICE_UNAVAILABLE,
+                    "Password reset feature requires Redis to be configured");
+        }
         // Đầu tiên để lấy ra verifyToken, ta cần phải check otp
         // Nếu otp đúng -> xóa trong redis -> tạo verifyToken mới -> lưu vào redis ->
         // trả về verifyToken cho client
@@ -93,6 +105,10 @@ public class ForgetPasswordFlowServiceImpl implements ForgetPasswordFlowService 
 
     @Override
     public void resetPassword(String email, String verifyToken, String newPassword) {
+        if (forgetPassRedisService == null) {
+            throw new ApiException(ErrorCode.SERVICE_UNAVAILABLE,
+                    "Password reset feature requires Redis to be configured");
+        }
         // Check verifyToken có hợp lệ không, nếu hợp lệ thì xóa verifyToken trong redis
         // và cho phép reset password
         String storedVerifyToken = forgetPassRedisService.getForgetPassToken(email);

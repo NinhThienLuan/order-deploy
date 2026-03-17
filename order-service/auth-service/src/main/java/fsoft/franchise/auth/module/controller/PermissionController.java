@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/auth/permissions")
+@RequestMapping("/api/v1/auth/permissions")
 @RequiredArgsConstructor
 public class PermissionController {
 

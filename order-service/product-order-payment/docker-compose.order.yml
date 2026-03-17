@@ -1,0 +1,78 @@
+version: '3.8'
+
+services:
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    container_name: franchise-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: franchise
+      MYSQL_USER: franchise
+      MYSQL_PASSWORD: franchise_secret
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - franchise-network
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Order Service (standalone)
+  order-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: order-service
+    environment:
+      # Server Config
+      PORT: 8081
+      SERVER_URL: http://3.27.221.137:8081
+
+      # Eureka Config (connect to Render Eureka)
+      EUREKA_SERVER_URL: https://eureka-server-oonv.onrender.com/eureka/
+
+      # Database Config
+      DB_URL: jdbc:mysql://mysql:3306/franchise?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Ho_Chi_Minh&createDatabaseIfNotExist=true
+      DB_USERNAME: franchise
+      DB_PASSWORD: franchise_secret
+
+      # JWT Config
+      JWT_SECRET: ZGF5LWxhLWNodW9pLWJpLW1hdC1jdWEtYmFkbWludG9uLWRhdGUtcHJvamVjdA==
+
+      # MoMo Config
+      MOMO_PARTNER_CODE: MOMOLRJZ20181206
+      MOMO_ACCESS_KEY: mTCKt9W3eU1m39TW
+      MOMO_SECRET_KEY: SetA5RDnLHvt51AULf51DyauxUo3kDU6
+      MOMO_RETURN_URL: http://3.27.221.137:8081/api/v1/payments/momo/return
+      MOMO_FRONTEND_URL: http://3.27.221.137:3000/payment/result
+      MOMO_NOTIFY_URL: http://3.27.221.137:8081/api/v1/payments/momo/callback
+
+      # VNPay Config
+      VNPAY_TMN_CODE: 9PJF2F6F
+      VNPAY_HASH_SECRET: PSCVGW8CL9PVQXY3HKS8ASF1XUR8VYGI
+      VNPAY_RETURN_URL: http://3.27.221.137:8081/api/v1/payments/vnpay-return
+
+      # Swagger
+      SWAGGER_ENABLED: "true"
+
+    ports:
+      - "8081:8081"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - franchise-network
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+
+
+networks:
+  franchise-network:
+    driver: bridge

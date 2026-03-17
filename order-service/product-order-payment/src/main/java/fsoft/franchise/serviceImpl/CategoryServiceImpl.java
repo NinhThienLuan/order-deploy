@@ -4,6 +4,7 @@ import fsoft.franchise.dto.products.CategoryRequest;
 import fsoft.franchise.dto.products.CategoryResponse;
 import fsoft.franchise.entity.CategoryEntity;
 import fsoft.franchise.common.exception.ApiException;
+import fsoft.franchise.exception.CommonErrorCode;
 import fsoft.franchise.exception.ProductErrorCode;
 import fsoft.franchise.repository.CategoryRepository;
 import fsoft.franchise.service.CategoryService;
@@ -31,8 +32,19 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
+    public List<CategoryResponse> getAdminCategories() {
+        return categoryRepository.findAllByDeleteAtIsNullOrderByNameAsc()
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @Override
     @Transactional
     public CategoryResponse createCategory(CategoryRequest request) {
+        if (categoryRepository.existsByNameIgnoreCaseAndDeleteAtIsNull(request.getName().trim())) {
+            throw new ApiException(CommonErrorCode.CONFLICT, "Category name already exists");
+        }
         CategoryEntity entity = CategoryEntity.builder()
                 .name(request.getName().trim())
                 .description(request.getDescription() != null ? request.getDescription().trim() : null)
@@ -47,11 +59,24 @@ public class CategoryServiceImpl implements CategoryService {
     public CategoryResponse updateCategory(UUID id, CategoryRequest request) {
         CategoryEntity entity = categoryRepository.findById(id)
                 .orElseThrow(() -> new ApiException(ProductErrorCode.CATEGORY_NOT_FOUND));
+
+        if (entity.getDeleteAt() != null) {
+            throw new ApiException(CommonErrorCode.BAD_REQUEST, "Cannot update a deleted category");
+        }
+
+        if (categoryRepository.existsByNameIgnoreCaseAndIdNotAndDeleteAtIsNull(request.getName().trim(), id)) {
+            throw new ApiException(CommonErrorCode.CONFLICT, "Category name already exists");
+        }
+
         entity.setName(request.getName().trim());
         entity.setDescription(request.getDescription() != null ? request.getDescription().trim() : null);
         if (request.getParentId() != null) {
             entity.setParentId(request.getParentId());
         }
+
+        // Reactivate category on update as requested
+        entity.setActive(true);
+
         return toResponse(categoryRepository.save(entity));
     }
 
@@ -60,8 +85,24 @@ public class CategoryServiceImpl implements CategoryService {
     public void deleteCategory(UUID id) {
         CategoryEntity entity = categoryRepository.findById(id)
                 .orElseThrow(() -> new ApiException(ProductErrorCode.CATEGORY_NOT_FOUND));
+        
+        // Deactivate category only
         entity.setActive(false);
-        entity.setDeleteAt(LocalDateTime.now());
+
+        // Cascade deactivation to products
+        if (entity.getProducts() != null) {
+            entity.getProducts().forEach(p -> {
+                p.setActive(false);
+
+                // Cascade deactivation to variants
+                if (p.getVariants() != null) {
+                    p.getVariants().forEach(v -> {
+                        v.setActive(false);
+                    });
+                }
+            });
+        }
+
         categoryRepository.save(entity);
     }
 
@@ -71,6 +112,7 @@ public class CategoryServiceImpl implements CategoryService {
                 .name(c.getName())
                 .description(c.getDescription())
                 .parentId(c.getParentId())
+                .active(c.getActive())
                 .build();
     }
 }

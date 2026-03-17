@@ -31,14 +31,13 @@ build/
 
 ### VS Code ###
 .vscode/
+application-dev.properties
 
 ### Local Database (H2 / SQLite / Local runtime data) ###
 *.db
 *.lock.db
 *.mv.db
 *.trace.db
-
-# Folder chứa DB local của bạn
 backend/data/
 
 ### Logs ###

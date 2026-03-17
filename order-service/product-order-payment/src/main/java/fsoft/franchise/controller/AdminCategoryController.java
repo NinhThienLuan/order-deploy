@@ -12,6 +12,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
@@ -29,26 +30,26 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/admin/categories")
 @RequiredArgsConstructor
-@Tag(name = "Admin — Category", description = "Admin category management API")
-// @PreAuthorize("hasRole('FRANCHISE_ADMIN')")
+@Tag(name = "Admin — Category", description = "Admin category management API. Permission: ADMIN only.")
+@PreAuthorize("hasRole('ADMIN')")
 public class AdminCategoryController {
 
         private final CategoryService categoryService;
 
         @GetMapping
-        @Operation(summary = "List all categories")
+        @Operation(summary = "List all categories", description = "Permission: ADMIN.")
         public ResponseEntity<ApiResponse<List<CategoryResponse>>> getAll(HttpServletRequest request) {
                 return ResponseEntity.ok(ApiResponse.<List<CategoryResponse>>builder()
                                 .code(200)
                                 .message(CommonErrorCode.SUCCESS.getMessage())
-                                .result(categoryService.getCategories())
+                                .result(categoryService.getAdminCategories())
                                 .timestamp(Instant.now())
                                 .path(request.getRequestURI())
                                 .build());
         }
 
         @PostMapping
-        @Operation(summary = "Create a new category")
+        @Operation(summary = "Create a new category", description = "Permission: ADMIN.")
         public ResponseEntity<ApiResponse<CategoryResponse>> create(
                         HttpServletRequest request,
                         @Valid @RequestBody CategoryRequest body) {
@@ -65,7 +66,7 @@ public class AdminCategoryController {
         }
 
         @PutMapping("/{id}")
-        @Operation(summary = "Update an existing category")
+        @Operation(summary = "Update an existing category", description = "Permission: ADMIN.")
         public ResponseEntity<ApiResponse<CategoryResponse>> update(
                         HttpServletRequest request,
                         @PathVariable("id") UUID id,
@@ -82,7 +83,7 @@ public class AdminCategoryController {
         }
 
         @DeleteMapping("/{id}")
-        @Operation(summary = "Soft-delete a category")
+        @Operation(summary = "Soft-delete a category", description = "Permission: ADMIN.")
         public ResponseEntity<ApiResponse<Void>> delete(
                         HttpServletRequest request,
                         @PathVariable("id") UUID id) {
