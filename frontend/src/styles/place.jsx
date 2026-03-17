@@ -1,1 +1,0 @@
-//Hiệu Ứng Căng Trang//
