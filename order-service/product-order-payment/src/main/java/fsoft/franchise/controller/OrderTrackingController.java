@@ -27,9 +27,9 @@ import java.util.UUID;
  * <li><b>GET /v1/orders/{id}/tracking</b> — Khách hàng xem timeline tracking
  * (giống hình tracking DHL/Shopee)</li>
  * <li><b>PUT /v1/orders/{order_id}/status</b> —
- * ADMIN/MANAGER/POS cập nhật trạng
+ * FRANCHISE_ADMIN/STORE_MANAGER/POS cập nhật trạng
  * thái (CUSTOMER không dùng được) → tự động push real-time qua WebSocket</li>
- * <li><b>POST /v1/orders/{order_id}/refund</b> — ADMIN/MANAGER
+ * <li><b>POST /v1/orders/{order_id}/refund</b> — FRANCHISE_ADMIN/STORE_MANAGER
  * thực hiện hoàn tiền đơn hàng</li>
  * </ol>
  *
@@ -46,9 +46,9 @@ import java.util.UUID;
  * </pre>
  */
 @RestController
-@RequestMapping("/api/v1/orders")
+@RequestMapping("/v1/orders")
 @RequiredArgsConstructor
-@Tag(name = "order-tracking-controller", description = "Order tracking timeline and manual status/refund actions. Permission varies by endpoint (CUSTOMER/ADMIN/MANAGER as documented per API).")
+@Tag(name = "order-tracking-controller", description = "Order tracking timeline and manual status/refund actions. Permission varies by endpoint (USER/ADMIN/MANAGER as documented per API).")
 public class OrderTrackingController {
 
         private final OrderTrackingService orderTrackingService;
@@ -68,7 +68,8 @@ public class OrderTrackingController {
          * </p>
          */
         @GetMapping("/{id}/tracking")
-        @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN', 'MANAGER', 'POS')")
+        @Operation(summary = "Get order tracking", description = "Get order tracking timeline. Permission: USER, ADMIN, MANAGER (USER can access own orders only).")
+        @PreAuthorize("hasAnyRole('USER', 'ADMIN', 'MANAGER', 'POS')")
         public ResponseEntity<ApiResponse<OrderTrackingTimelineDTO>> getTrackingTimeline(
                         HttpServletRequest request,
                         @PathVariable("id") UUID id) {
@@ -92,7 +93,7 @@ public class OrderTrackingController {
         // ======================== ADMIN API ========================
 
         /**
-         * PUT /v1/orders/{order_id}/status — ADMIN, MANAGER hoặc POS
+         * PUT /v1/orders/{order_id}/status — FRANCHISE_ADMIN, STORE_MANAGER hoặc POS
          * cập nhật trạng thái đơn hàng.
          * CUSTOMER không được dùng API này.
          *
@@ -132,7 +133,7 @@ public class OrderTrackingController {
         }
 
         /**
-         * POST /v1/orders/{order_id}/refund — ADMIN hoặc MANAGER thực
+         * POST /v1/orders/{order_id}/refund — FRANCHISE_ADMIN hoặc STORE_MANAGER thực
          * hiện hoàn tiền đơn hàng.
          * Đơn phải ở trạng thái PAID, COMPLETED hoặc READY; không được đã refund trước
          * đó.

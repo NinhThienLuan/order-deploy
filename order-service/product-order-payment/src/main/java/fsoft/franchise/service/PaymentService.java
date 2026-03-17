@@ -28,7 +28,7 @@ public interface PaymentService {
      * Get current payment status for an order (for "Cảm ơn" screen, frontend
      * polling after Online payment).
      * Returns the latest payment for the order.
-     * ADMIN and MANAGER can view any order; CUSTOMER can only view
+     * FRANCHISE_ADMIN and STORE_MANAGER can view any order; CUSTOMER can only view
      * their own.
      */
     PaymentStatusResponse getPaymentStatus(UUID orderId, UUID currentUserId, String role);

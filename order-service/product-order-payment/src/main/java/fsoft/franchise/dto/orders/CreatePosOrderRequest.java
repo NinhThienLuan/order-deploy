@@ -13,7 +13,5 @@ public record CreatePosOrderRequest(
         @NotNull(message = "Store ID is required")
         UUID storeId,
         UUID customerId,   // optional
-        String recipientName,
-        String recipientPhone,
         String note) {
 }

@@ -81,7 +81,8 @@ public class PaymentServiceImpl implements PaymentService {
                 // 5. Branch logic by role (ADMIN / MANAGER use admin filters)
                 Page<PaymentEntity> page;
                 BigDecimal totalAmount;
-                boolean isAdmin = "ADMIN".equalsIgnoreCase(role) || "MANAGER".equalsIgnoreCase(role);
+                boolean isAdmin = "ADMIN".equalsIgnoreCase(role) || "MANAGER".equalsIgnoreCase(role)
+                                || "FRANCHISE_ADMIN".equalsIgnoreCase(role) || "STORE_MANAGER".equalsIgnoreCase(role);
 
                 LocalDateTime fromLocalDate = fromDate != null
                                 ? LocalDateTime.ofInstant(fromDate, ZoneId.systemDefault())
@@ -336,66 +337,76 @@ public class PaymentServiceImpl implements PaymentService {
 //                                payment.getPaymentDate());
 //        }
 
+    // ── Method 1.6: Ghi nhận thanh toán INBOUND ───────────────────────────────
 
-        @Override
-        @Transactional
-        public PaymentResponse createInboundPayment(CreateInboundPaymentRequest request, String ipAddress) {
-                String inboundTxnRef = request.orderId();
+    @Override
+    @Transactional
+    public PaymentResponse createInboundPayment(CreateInboundPaymentRequest request, String ipAddress) {
 
-                // 1) Logic check existing
-                if (inboundTxnRef != null) {
-                        Optional<PaymentEntity> existing = paymentRepository.findByTransactionId(inboundTxnRef);
-                        if (existing.isPresent()) {
-                                PaymentEntity p = existing.get();
-                                return new PaymentResponse(p.getId(), UUID.fromString(p.getTransactionId()),
-                                                p.getPaymentMethod().toString(), p.getAmountPaid(), p.getStatus().toString(),
-                                                null, p.getPaymentUrl(), p.getExpiredAt(), p.getPaymentDate());
-                        }
-                }
+        String inboundTxnRef = request.orderId();
 
-                // 2) Generate payment URL based on method
-                String paymentUrl = null;
-                if (request.paymentMethod() == PaymentMethod.MOMO) {
-                        paymentUrl = moMoPaymentService.createPaymentLink(
-                                        UUID.fromString(request.orderId()),
-                                        request.amount().longValue(),
-                                        "Payment for order " + request.orderId(),
-                                        request.resolvedMomoRequestType());
-                } else if (request.paymentMethod() == PaymentMethod.VNPAY) {
-                        // VNPay
-                        paymentUrl = vnPayService.createPaymentUrl(
-                                        request.orderId(),
-                                        request.amount().longValue(),
-                                        inboundTxnRef,
-                                        ipAddress);
-                }
-                // If CASH, paymentUrl remains null
-
-                // 3) Persist payment
-                PaymentEntity payment = PaymentEntity.builder()
-                                .order(null)
-                                .transactionId(inboundTxnRef)
-                                .paymentMethod(request.paymentMethod())
-                                .paymentType(PaymentType.INBOUND)
-                                .amountPaid(request.amount())
-                                .status(PaymentStatus.PENDING)
-                                .paymentUrl(paymentUrl)
-                                .expiredAt(LocalDateTime.now().plus(15, ChronoUnit.MINUTES))
-                                .paymentDate(LocalDateTime.now())
-                                .build();
-                paymentRepository.save(payment);
-
+        if (inboundTxnRef != null) {
+            Optional<PaymentEntity> existing = paymentRepository.findByTransactionId(inboundTxnRef);
+            if (existing.isPresent()
+                    && existing.get().getPaymentType() == PaymentType.INBOUND
+                    && existing.get().getStatus() == PaymentStatus.PENDING) {
+                PaymentEntity p = existing.get();
                 return new PaymentResponse(
-                                payment.getId(),
-                                UUID.fromString(payment.getTransactionId()), // orderId cua INBOUND
-                                payment.getPaymentMethod().toString(),
-                                payment.getAmountPaid(),
-                                payment.getStatus().toString(),
-                                null, // no orderStatus for INBOUND
-                                paymentUrl,
-                                payment.getExpiredAt(),
-                                payment.getPaymentDate());
+                        p.getId(),
+                        UUID.fromString(p.getTransactionId()),
+                        p.getPaymentMethod().toString(),
+                        p.getAmountPaid(),
+                        p.getStatus().toString(),
+                        null,
+                        p.getPaymentUrl(),
+                        p.getExpiredAt(),
+                        p.getPaymentDate());
+            }
         }
+
+        // 2) Generate payment URL based on method
+        String paymentUrl = null;
+        if (request.paymentMethod() == PaymentMethod.MOMO) {
+            paymentUrl = moMoPaymentService.createPaymentLink(
+                    UUID.fromString(request.orderId()),
+                    request.amount().longValue(),
+                    "Payment for order " + request.orderId(),
+                    request.resolvedMomoRequestType());
+        } else if (request.paymentMethod() == PaymentMethod.VNPAY) {
+            // VNPay
+            paymentUrl = vnPayService.createPaymentUrl(
+                    request.orderId(),
+                    request.amount().longValue(),
+                    inboundTxnRef,
+                    ipAddress);
+        }
+        // If CASH, paymentUrl remains null
+
+        // 3) Persist payment
+        PaymentEntity payment = PaymentEntity.builder()
+                .order(null)
+                .transactionId(inboundTxnRef)
+                .paymentMethod(request.paymentMethod())
+                .paymentType(PaymentType.INBOUND)
+                .amountPaid(request.amount())
+                .status(PaymentStatus.PENDING)
+                .paymentUrl(paymentUrl)
+                .expiredAt(LocalDateTime.now().plus(15, ChronoUnit.MINUTES))
+                .paymentDate(LocalDateTime.now())
+                .build();
+        paymentRepository.save(payment);
+
+        return new PaymentResponse(
+                payment.getId(),
+                UUID.fromString(payment.getTransactionId()), //orderId cua INBOUND
+                payment.getPaymentMethod().toString(),
+                payment.getAmountPaid(),
+                payment.getStatus().toString(),
+                null, // no orderStatus for INBOUND
+                paymentUrl,
+                payment.getExpiredAt(),
+                payment.getPaymentDate());
+    }
 
         // ── Method 2: Xử lý webhook từ VNPay ─────────────────────────────────────
 

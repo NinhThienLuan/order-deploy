@@ -23,7 +23,7 @@ public interface OrderTrackingService {
     /**
      * Cập nhật trạng thái đơn hàng trong DB + push real-time notification.
      * Validate luồng trạng thái hợp lệ (PAID→PREPARING→READY→COMPLETED).
-     * Chỉ ADMIN và MANAGER được gọi.
+     * Chỉ FRANCHISE_ADMIN và STORE_MANAGER được gọi.
      *
      * @return Thông tin đơn hàng sau khi cập nhật (orderId, status, lastUpdated)
      */

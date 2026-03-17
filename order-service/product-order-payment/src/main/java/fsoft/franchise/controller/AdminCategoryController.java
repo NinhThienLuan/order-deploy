@@ -42,7 +42,7 @@ public class AdminCategoryController {
                 return ResponseEntity.ok(ApiResponse.<List<CategoryResponse>>builder()
                                 .code(200)
                                 .message(CommonErrorCode.SUCCESS.getMessage())
-                                .result(categoryService.getAdminCategories())
+                                .result(categoryService.getCategories())
                                 .timestamp(Instant.now())
                                 .path(request.getRequestURI())
                                 .build());

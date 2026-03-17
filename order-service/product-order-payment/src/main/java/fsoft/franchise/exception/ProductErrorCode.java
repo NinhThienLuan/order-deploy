@@ -18,8 +18,7 @@ public enum ProductErrorCode implements ErrorCode {
     VARIANT_NOT_FOUND(404, "Variant not found", HttpStatus.NOT_FOUND, "variant.not_found"),
     IMAGE_NOT_FOUND(404, "Image not found", HttpStatus.NOT_FOUND, "image.not_found"),
     INGREDIENT_NOT_FOUND(404, "Ingredient not found", HttpStatus.NOT_FOUND, "ingredient.not_found"),
-    PRODUCT_ALREADY_EXISTS(400, "Product with this name already exists", HttpStatus.BAD_REQUEST, "product.already_exists"),
-    PRODUCT_INCOMPLETE(400, "Product must have description, category, images, and variants before being activated", HttpStatus.BAD_REQUEST, "product.incomplete");
+    PRODUCT_ALREADY_EXISTS(400, "Product with this name already exists", HttpStatus.BAD_REQUEST, "product.already_exists");
 
     private final int code;
     private final String message;

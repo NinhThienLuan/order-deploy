@@ -10,8 +10,8 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
 
 @SpringBootApplication
 @EnableDiscoveryClient
+@EnableFeignClients
 @EnableConfigurationProperties(JwtProperties.class)
-@EnableFeignClients(basePackages = "fsoft.franchise.client")
 public class FranchiseApplication {
 
     public static void main(String[] args) {

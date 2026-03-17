@@ -4,6 +4,7 @@ import fsoft.franchise.common.response.ApiResponse;
 import fsoft.franchise.common.config.VNPayConfig;
 import fsoft.franchise.security.JwtService;
 import fsoft.franchise.dto.payments.CreateInboundPaymentRequest;
+import fsoft.franchise.dto.payments.CreatePaymentRequest;
 import fsoft.franchise.dto.payments.PaymentFilterRequest;
 import fsoft.franchise.dto.payments.PaymentListResponse;
 import fsoft.franchise.dto.payments.PaymentMethodResponse;
@@ -105,12 +106,12 @@ public class PaymentController {
          * GET /v1/payments/{order_id}/status
          * Check current payment status for an order. Requires auth: CUSTOMER may only
          * view own orders;
-         * ADMIN and MANAGER may view any. 400 Invalid order id, 403
+         * FRANCHISE_ADMIN and STORE_MANAGER may view any. 400 Invalid order id, 403
          * Access denied, 404 Payment not found.
          */
         @GetMapping("/{orderId}/status")
-        @Operation(summary = "Get payment status", description = "Returns the current payment status for a given order. Users may only view their own orders. Permission: CUSTOMER, ADMIN, MANAGER.")
-        @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN', 'MANAGER', 'POS')")
+        @Operation(summary = "Get payment status", description = "Returns the current payment status for a given order. Users may only view their own orders. Permission: USER, ADMIN, MANAGER.")
+        @PreAuthorize("hasAnyRole('USER', 'ADMIN', 'MANAGER', 'POS')")
         public ResponseEntity<ApiResponse<PaymentStatusResponse>> getPaymentStatus(
                         @PathVariable("orderId") String orderId,
                         HttpServletRequest request) {

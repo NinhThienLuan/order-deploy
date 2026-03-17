@@ -18,11 +18,8 @@ import java.util.UUID;
 @AllArgsConstructor
 public class OrderHistoryItem {
     private UUID id;
-    private String orderNumber;
     private BigDecimal totalAmount;
     private OrderStatus status;
-    private String recipientName;
-    private String recipientPhone;
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime createdAt;
 }

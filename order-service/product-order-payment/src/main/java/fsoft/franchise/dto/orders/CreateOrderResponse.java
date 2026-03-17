@@ -9,7 +9,6 @@ import java.util.UUID;
 
 public record CreateOrderResponse(
         UUID orderId,
-        String orderNumber,
         OrderStatus status,
         LocalDateTime orderTime,
         BigDecimal totalAmount,

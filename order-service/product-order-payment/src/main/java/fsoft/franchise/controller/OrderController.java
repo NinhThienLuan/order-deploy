@@ -33,7 +33,7 @@ import java.util.UUID;
 @RequestMapping("/api/v1/orders")
 @Validated
 @RequiredArgsConstructor
-@Tag(name = "Orders", description = "Order creation, status, history, payment processing, and refund requests. Permission varies by endpoint (CUSTOMER/ADMIN/MANAGER as documented per API).")
+@Tag(name = "Orders", description = "Order creation, status, history, payment processing, and refund requests. Permission varies by endpoint (USER/ADMIN/MANAGER as documented per API).")
 public class OrderController {
 
         private final OrderService orderService;
@@ -45,7 +45,7 @@ public class OrderController {
          * POST /v1/orders — Tạo đơn hàng mới
          */
         @PostMapping
-        @Operation(summary = "Create order", description = "Create a new order for the authenticated user. Permission: CUSTOMER.")
+        @Operation(summary = "Create order", description = "Create a new order for the authenticated user. Permission: USER.")
         public ResponseEntity<ApiResponse<CreateOrderResponse>> createOrder(
                         HttpServletRequest request,
                         @Valid @RequestBody CreateOrderRequest body) {
@@ -181,22 +181,6 @@ public class OrderController {
                                 .build());
         }
 
-        /**
-         * GET /v1/orders/enums — Returns all relevant order enums.
-         */
-        @GetMapping("/enums")
-        @Operation(summary = "Get order enums", description = "Returns all relevant enums for order creation/management (Status, PaymentMethod, MomoRequestType, etc.). Permission: Public.")
-        public ResponseEntity<ApiResponse<OrderEnumsResponse>> getOrderEnums(HttpServletRequest request) {
-                OrderEnumsResponse enums = orderService.getOrderEnums();
-                return ResponseEntity.ok(ApiResponse.<OrderEnumsResponse>builder()
-                                .code(200)
-                                .message("Get order enums successfully")
-                                .result(enums)
-                                .timestamp(Instant.now())
-                                .path(request.getRequestURI())
-                                .build());
-        }
-
         @GetMapping("/test")
         @Operation(summary = "Test endpoint", description = "Test endpoint to verify authentication and fetch franchise stores data from franchise service")
         public ResponseEntity<ApiResponse<?>> test(HttpServletRequest request) {
@@ -242,8 +226,8 @@ public class OrderController {
          * ADMIN và MANAGER xem được mọi order.
          */
         @GetMapping("/{id}/status")
-        @Operation(summary = "Get order status", description = "Returns the current status of an order. Customers may only see their own orders.")
-        @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN', 'MANAGER', 'POS')")
+        @Operation(summary = "Get order status", description = "Returns the current status of an order. Users may only see their own orders. Permission: USER, ADMIN, MANAGER.")
+        @PreAuthorize("hasAnyRole('USER', 'ADMIN', 'MANAGER', 'POS')")
         public ResponseEntity<ApiResponse<OrderStatusResponse>> getOrderStatus(
                         HttpServletRequest request,
                         @PathVariable("id") UUID id) {
@@ -295,7 +279,6 @@ public class OrderController {
          */
         @GetMapping
         @Operation(summary = "Get all orders", description = "Paginated, filterable order history for admins. ADMIN and MANAGER only.")
-        @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'POS')")
         public ResponseEntity<ApiResponse<OrderHistoryPage>> getOrderHistory(
                         HttpServletRequest request,
                         @RequestParam(name = "page", defaultValue = "1") int page,
@@ -323,8 +306,8 @@ public class OrderController {
         }
 
         @GetMapping("/{id}")
-        @Operation(summary = "Get order detail", description = "Full order detail including items, payment, and status. Customers may only view their own orders.")
-        @PreAuthorize("hasAnyRole('CUSTOMER', 'MANAGER', 'ADMIN', 'POS')")
+        @Operation(summary = "Get order detail", description = "Full order detail including items, payment, and status. Users may only view their own orders. Permission: USER, MANAGER, ADMIN.")
+        @PreAuthorize("hasAnyRole('USER', 'MANAGER', 'ADMIN', 'POS')")
         public ResponseEntity<ApiResponse<OrderDetailResponse>> getOrderDetail(
                         @PathVariable("id") String id,
                         HttpServletRequest request) {

@@ -14,38 +14,6 @@ Service này đã được tách ra khỏi multi-module và có thể deploy đ�
 
 ## 🚀 Cách Deploy
 
-### Option 0: Render / Railway (khong Dockerfile)
-
-Buildpack se tu detect Maven project.
-
-**Root Directory**
-- `order-service/product-order-payment`
-
-**Build Command**
-```bash
-./mvnw clean package -DskipTests
-```
-
-**Start Command**
-```bash
-java -Dspring.profiles.active=cloud -jar target/order-service-1.0.0-SNAPSHOT.jar
-```
-
-**Required Environment Variables**
-- `PORT` (Render/Railway set san)
-- `DB_URL`
-- `DB_USERNAME`
-- `DB_PASSWORD`
-- `JWT_SECRET`
-
-**Optional (neu co gateway/discovery)**
-- `EUREKA_ENABLED=true`
-- `EUREKA_SERVER_URL=...`
-- `FRANCHISE_STORE_BASE_URL=...`
-- `INVENTORY_BASE_URL=...`
-
-Cloud profile file: `src/main/resources/application-cloud.properties`
-
 ### Option 1: Docker Compose (Khuyến nghị)
 
 ```bash

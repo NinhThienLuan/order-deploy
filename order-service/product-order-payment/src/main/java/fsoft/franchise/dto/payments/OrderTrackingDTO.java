@@ -52,13 +52,4 @@ public class OrderTrackingDTO {
 
     /** ID người cập nhật (admin/store manager) */
     private UUID updatedBy;
-
-    /** 
-     * Thông tin chi tiết đơn hàng (Dùng để update dashboard real-time).
-     * Thường là OrderHistoryItem hoặc OrderDetailResponse.
-     */
-    private Object order;
-
-    /** Loại sự kiện (VD: "NEW_ORDER", "STATUS_UPDATE") */
-    private String type;
 }

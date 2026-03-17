@@ -16,43 +16,54 @@ import java.util.Comparator;
 import java.util.List;
 
 @Configuration
-@SecurityScheme(name = "bearerAuth", description = "JWT auth description", scheme = "bearer", type = SecuritySchemeType.HTTP, bearerFormat = "JWT", in = SecuritySchemeIn.HEADER)
+@SecurityScheme(
+        name = "bearerAuth",
+        description = "JWT auth description",
+        scheme = "bearer",
+        type = SecuritySchemeType.HTTP,
+        bearerFormat = "JWT",
+        in = SecuritySchemeIn.HEADER
+)
 public class OpenApiConfig {
 
-        @Value("${server.url:http://localhost:8080}")
+        @Value("${server.url:http://localhost:8081}")
         private String serverUrl;
 
+        @Value("${integration.franchise-store.base-url:http://localhost:8080}")
+        private String gatewayUrl;
+
         private static final List<String> TAG_ORDER = List.of(
-                        "Auth",
-                        "Products",
-                        "Orders",
-                        "Payments",
-                        "MoMo Callbacks",
-                        "Refunds",
-                        "Admin \u2014 Product",
-                        "Admin \u2014 Product Image",
-                        "Admin \u2014 Product Variant",
-                        "Admin \u2014 Transactions");
+                "Auth",
+                "Products",
+                "Orders",
+                "Payments",
+                "MoMo Callbacks",
+                "Refunds",
+                "Admin \u2014 Product",
+                "Admin \u2014 Product Image",
+                "Admin \u2014 Product Variant",
+                "Admin \u2014 Transactions"
+        );
 
         @Bean
         public OpenAPI customOpenAPI() {
                 Server localServer = new Server();
-                localServer.setUrl("http://localhost:8081");
+                localServer.setUrl(serverUrl);
                 localServer.setDescription("Local Environment");
 
                 Server gatewayServer = new Server();
-                gatewayServer.setUrl("http://localhost:8080");
+                gatewayServer.setUrl(gatewayUrl);
                 gatewayServer.setDescription("Gateway Environment");
 
                 return new OpenAPI()
-                                .info(new Info()
-                                                .title("Franchise web app")
-                                                .version("1.0")
-                                                .description("API Documentation for Franchise Coffee App"))
-                                .servers(List.of(gatewayServer, localServer))
-                                .security(List.of(
-                                                new io.swagger.v3.oas.models.security.SecurityRequirement()
-                                                                .addList("bearerAuth")));
+                        .info(new Info()
+                                .title("Franchise web app")
+                                .version("1.0")
+                                .description("API Documentation for Franchise Coffee App"))
+                        .servers(List.of(gatewayServer, localServer))
+                        .security(List.of(
+                                new io.swagger.v3.oas.models.security.SecurityRequirement()
+                                        .addList("bearerAuth")));
         }
 
         @Bean
@@ -61,10 +72,10 @@ public class OpenApiConfig {
                         List<Tag> tags = openApi.getTags();
                         if (tags != null) {
                                 tags.sort(Comparator.comparingInt(
-                                                tag -> {
-                                                        int idx = TAG_ORDER.indexOf(tag.getName());
-                                                        return idx == -1 ? Integer.MAX_VALUE : idx;
-                                                }));
+                                        tag -> {
+                                                int idx = TAG_ORDER.indexOf(tag.getName());
+                                                return idx == -1 ? Integer.MAX_VALUE : idx;
+                                        }));
                         }
                 };
         }

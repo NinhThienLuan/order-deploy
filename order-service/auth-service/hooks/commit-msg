@@ -1,0 +1,44 @@
+#!/bin/sh
+# Validate commit message format: <prefix>: <message>
+# Valid prefixes: feat, fix, docs, style, refactor, test, chore, perf, revert, hotfix, wip
+
+COMMIT_MSG_FILE=$1
+COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
+
+# Bỏ qua merge commit
+if echo "$COMMIT_MSG" | grep -qE "^Merge "; then
+    exit 0
+fi
+
+PATTERN="^(feat|fix|docs|style|refactor|test|chore|perf|revert|hotfix|wip): .+"
+
+if ! echo "$COMMIT_MSG" | grep -qE "$PATTERN"; then
+    echo ""
+    echo "❌ Commit message không đúng format!"
+    echo ""
+    echo "   Format yêu cầu: <prefix>: <nội dung>"
+    echo ""
+    echo "   Prefix hợp lệ:"
+    echo "     feat     - tính năng mới"
+    echo "     fix      - sửa bug"
+    echo "     docs     - tài liệu"
+    echo "     style    - format, UI"
+    echo "     refactor - refactor code"
+    echo "     test     - thêm/sửa test"
+    echo "     chore    - build, config, CI/CD"
+    echo "     perf     - cải thiện hiệu suất"
+    echo "     revert   - revert commit"
+    echo "     hotfix   - hotfix khẩn cấp"
+    echo "     wip      - đang làm dở"
+    echo ""
+    echo "   Ví dụ:"
+    echo "     feat: add refresh token endpoint"
+    echo "     fix: handle null pointer in jwt filter"
+    echo ""
+    echo "   Commit của bạn: \"$COMMIT_MSG\""
+    echo ""
+    exit 1
+fi
+
+exit 0
+

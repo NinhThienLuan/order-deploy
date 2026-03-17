@@ -34,7 +34,7 @@ public class AdminController {
          * GET /v1/admin/transactions
          * List all payment transactions for reconciliation. Request params giống GET
          * /v1/orders.
-         * Permission: ADMIN or MANAGER only.
+         * Permission: FRANCHISE_ADMIN or STORE_MANAGER only.
          */
         @GetMapping("/transactions")
         @Operation(summary = "List all transactions", description = "Paginated, filterable payment transaction list for reconciliation. Permission: ADMIN, MANAGER.")

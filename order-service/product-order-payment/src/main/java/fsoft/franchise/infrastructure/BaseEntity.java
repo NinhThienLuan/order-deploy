@@ -21,11 +21,6 @@ public class BaseEntity implements Persistable<UUID> {
     @Id
     private UUID id;
 
-    @Override
-    public UUID getId() {
-        return id;
-    }
-
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

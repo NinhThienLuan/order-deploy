@@ -91,9 +91,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 log.debug("Set authentication for user: {} with authorities: {}", email, authorities);
             }
         } catch (Exception e) {
-            log.error("JWT authentication failed for token: {} - Error: {}", 
-                token != null ? token.substring(0, Math.min(token.length(), 10)) + "..." : "null", 
-                e.getMessage());
+            log.error("JWT authentication failed: {}", e.getMessage());
             // Continue filter chain without setting authentication
         }
 

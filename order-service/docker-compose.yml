@@ -1,0 +1,187 @@
+version: '3.8'
+
+services:
+  # MySQL Database for Order Service
+  mysql:
+    image: mysql:8.0
+    container_name: franchise-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root_secret}
+      MYSQL_DATABASE: franchise
+      MYSQL_USER: franchise
+      MYSQL_PASSWORD: ${DB_PASSWORD:-franchise_secret}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD:-root_secret}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - franchise-net
+
+  # PostgreSQL Database for Auth Service
+  postgres:
+    image: postgres:15
+    container_name: franchise-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${AUTH_DB_NAME:-auth_db}
+      POSTGRES_USER: ${AUTH_DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${AUTH_DB_PASSWORD:-postgres_secret}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${AUTH_DB_USER:-postgres} -d ${AUTH_DB_NAME:-auth_db}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - franchise-net
+
+  # Redis for Auth Service (token caching)
+  redis:
+    image: redis:7-alpine
+    container_name: franchise-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - franchise-net
+
+  # Eureka Discovery Server
+  eureka-server:
+    build:
+      context: .
+      dockerfile: eureka-server/Dockerfile
+    container_name: franchise-eureka-server
+    restart: unless-stopped
+    ports:
+      - "8761:8761"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8761/actuator/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    networks:
+      - franchise-net
+
+  # Auth Service
+  auth-service:
+    build:
+      context: .
+      dockerfile: auth-service/Dockerfile
+    container_name: franchise-auth-service
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      # Database
+      DB_URL: jdbc:postgresql://postgres:5432/${AUTH_DB_NAME:-auth_db}?options=-c%20TimeZone%3DUTC
+      DB_USERNAME: ${AUTH_DB_USER:-postgres}
+      DB_PASSWORD: ${AUTH_DB_PASSWORD:-postgres_secret}
+      # Redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      # JWT
+      JWT_SECRET: ${JWT_SECRET:-1xk+i7i6bJnZ/VBmzOMNNTe6bxk/RhMgZSX56Ye0QK4WATtCu64ECFhFpRlUzAOwM0m+IJ77blkfkIoWflfRWA==}
+      JWT_ACCESS_TTL: ${JWT_ACCESS_TTL:-900000}
+      JWT_REFRESH_TTL: ${JWT_REFRESH_TTL:-604800000}
+    ports:
+      - "8082:8082"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8082/actuator/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    networks:
+      - franchise-net
+
+  # API Gateway
+  api-gateway:
+
+    build:
+      context: .
+      dockerfile: api-gateway/Dockerfile
+    container_name: franchise-api-gateway
+    restart: unless-stopped
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/actuator/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    networks:
+      - franchise-net
+
+  # Order Service (Backend)
+  order-service:
+    build:
+      context: ./product-order-payment
+      dockerfile: Dockerfile
+    container_name: franchise-order-service
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      # Database
+      DB_URL: jdbc:mysql://mysql:3306/franchise?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Ho_Chi_Minh&createDatabaseIfNotExist=true
+      DB_USERNAME: franchise
+      DB_PASSWORD: ${DB_PASSWORD:-franchise_secret}
+      # JWT
+      JWT_SECRET: ${JWT_SECRET:-1xk+i7i6bJnZ/VBmzOMNNTe6bxk/RhMgZSX56Ye0QK4WATtCu64ECFhFpRlUzAOwM0m+IJ77blkfkIoWflfRWA==}
+      # MoMo
+      MOMO_RETURN_URL: http://api-gateway:8080/momo/return
+    # ports:
+    #   - "8083:8083"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8083/actuator/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    networks:
+      - franchise-net
+
+networks:
+  franchise-net:
+    driver: bridge
+
+volumes:
+  mysql-data:
+  postgres-data:
+  redis-data:

@@ -20,5 +20,4 @@ public class ProductVariantResponse {
     private String sizeName;
     private BigDecimal price;
     private Boolean active;
-    private java.util.List<VariantIngredientResponse> ingredients;
 }

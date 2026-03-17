@@ -23,7 +23,7 @@ public interface RefundService {
      * POST /v1/orders/{order_id}/refund — không cần tạo request, approve ngay.
      *
      * @param orderId    ID đơn hàng
-     * @param performedBy ID user thực hiện (ADMIN/MANAGER)
+     * @param performedBy ID user thực hiện (FRANCHISE_ADMIN/STORE_MANAGER)
      * @return Thông tin kết quả refund (orderId, status REFUNDED, refundAmount, refundTime)
      */
     OrderRefundResponse processOrderRefund(UUID orderId, UUID performedBy);

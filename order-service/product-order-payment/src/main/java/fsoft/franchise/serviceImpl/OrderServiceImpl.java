@@ -1,26 +1,30 @@
 package fsoft.franchise.serviceImpl;
 
-import fsoft.franchise.enums.MomoRequestType;
-import fsoft.franchise.enums.PaymentMethod;
-
 import fsoft.franchise.client.FranchiseStoreClient;
 import fsoft.franchise.client.InventoryClient;
 import fsoft.franchise.common.exception.ApiException;
 import fsoft.franchise.dto.integration.FranchiseStoreResponse;
 import fsoft.franchise.dto.integration.StoreInventoryResponse;
 import fsoft.franchise.dto.orders.*;
+import fsoft.franchise.dto.payments.PaymentResponse;
 import fsoft.franchise.exception.CommonErrorCode;
 import fsoft.franchise.exception.OrderErrorCode;
+import fsoft.franchise.exception.PaymentErrorCode;
+import fsoft.franchise.dto.payments.PaymentRequest;
 import fsoft.franchise.entity.*;
 import fsoft.franchise.enums.OrderStatus;
+import fsoft.franchise.enums.PaymentStatus;
+import fsoft.franchise.enums.PaymentType;
+import fsoft.franchise.enums.MomoRequestType;
+import fsoft.franchise.enums.PaymentMethod;
 import fsoft.franchise.repository.OrderRepository;
+import fsoft.franchise.repository.PaymentRepository;
 import fsoft.franchise.repository.ProductRepository;
-// import fsoft.franchise.repository.PaymentRepository;
-// import fsoft.franchise.service.MoMoPaymentService;
-// import fsoft.franchise.service.VNPayService;
-// import fsoft.franchise.service.PaymentMethodService;
+import fsoft.franchise.service.MoMoPaymentService;
 import fsoft.franchise.service.OrderService;
 import fsoft.franchise.service.OrderTrackingService;
+import fsoft.franchise.service.PaymentMethodService;
+import fsoft.franchise.service.VNPayService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -54,31 +58,18 @@ public class OrderServiceImpl implements OrderService {
                 return List.of(OrderStatus.values());
         }
 
-        @Override
-        public OrderEnumsResponse getOrderEnums() {
-                return OrderEnumsResponse.builder()
-                                .orderStatuses(List.of(OrderStatus.values()))
-                                .paymentMethods(List.of(PaymentMethod.values()))
-                                .momoRequestTypes(List.of(
-                                                MomoRequestType.CAPTURE_WALLET.getMomoCode(),
-                                                MomoRequestType.PAY_WITH_ATM.getMomoCode()))
-                                .orderTypes(List.of("ONLINE", "POS"))
-                                .build();
-        }
-
         @Value("${app.payment.return-url:http://localhost:5173/payment/result}")
         private String paymentReturnUrl;
 
         private final OrderRepository orderRepository;
         private final ProductRepository productRepository;
+        private final PaymentRepository paymentRepository;
+        private final MoMoPaymentService moMoPaymentService;
+        private final PaymentMethodService paymentMethodService;
+        private final VNPayService vnPayService;
         private final OrderTrackingService orderTrackingService;
         private final FranchiseStoreClient franchiseStoreClient;
         private final InventoryClient inventoryClient;
-
-        // private final PaymentRepository paymentRepository;
-        // private final MoMoPaymentService moMoPaymentService;
-        // private final PaymentMethodService paymentMethodService;
-        // private final VNPayService vnPayService;
 
         @Override
         public OrderCancelResponse cancelOrder(UUID orderId, UUID userId, String role) {
@@ -86,8 +77,8 @@ public class OrderServiceImpl implements OrderService {
                 OrderEntity order = orderRepository.findById(orderId)
                                 .orElseThrow(() -> new ApiException(OrderErrorCode.ORDER_NOT_FOUND));
                 boolean canCancle = "ADMIN".equalsIgnoreCase(role)
-                                || "MANAGER".equalsIgnoreCase(role)
-                                || "POS".equalsIgnoreCase(role);
+                        || "MANAGER".equalsIgnoreCase(role)
+                        || "POS".equalsIgnoreCase(role);
                 // validate owner (uid in jwt)
                 if (!canCancle && !order.getCustomerId().equals(userId))
                         throw new ApiException(OrderErrorCode.ORDER_NOT_OWNED);
@@ -133,11 +124,8 @@ public class OrderServiceImpl implements OrderService {
                                         }
                                         return OrderHistoryItem.builder()
                                                         .id(o.getId())
-                                                        .orderNumber(o.getOrderNumber())
                                                         .totalAmount(amount)
                                                         .status(o.getStatus())
-                                                        .recipientName(o.getRecipientName())
-                                                        .recipientPhone(o.getRecipientPhone())
                                                         .createdAt(o.getOrderTime())
                                                         .build();
                                 })
@@ -163,10 +151,10 @@ public class OrderServiceImpl implements OrderService {
          * Algorithm:
          * - For each order item, load the selected (or first active) ProductVariant.
          * - From the variant's ProductVariantIngredientEntity list, accumulate the
-         * total ingredient quantities needed (quantity_per_unit × order_quantity).
+         *   total ingredient quantities needed (quantity_per_unit × order_quantity).
          * - Fetch the store's current inventory from the Inventory service.
          * - Compare required vs available for each ingredient. Throw INSUFFICIENT_STOCK
-         * if any ingredient falls short.
+         *   if any ingredient falls short.
          */
         private void validateStoreAndStock(UUID storeId,
                         List<CreateOrderRequest.OrderItemRequest> items,
@@ -219,8 +207,7 @@ public class OrderServiceImpl implements OrderService {
 
                         BigDecimal orderQty = BigDecimal.valueOf(itemReq.quantity());
                         for (ProductVariantIngredientEntity pvi : variant.getIngredients()) {
-                                if (pvi.getIngredient() == null || pvi.getQuantity() == null)
-                                        continue;
+                                if (pvi.getIngredient() == null || pvi.getQuantity() == null) continue;
                                 UUID ingredientId = pvi.getIngredient().getId();
                                 BigDecimal needed = pvi.getQuantity().multiply(orderQty);
                                 requiredIngredients.merge(ingredientId, needed, BigDecimal::add);
@@ -271,19 +258,13 @@ public class OrderServiceImpl implements OrderService {
         public CreateOrderResponse createOrder(CreateOrderRequest request, UUID customerId) {
 
                 // 2. Tạo order
-                String orderNumber = "ORD-" + LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd"))
-                                + "-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
-
                 OrderEntity order = OrderEntity.builder()
-                                .storeId(request.storeId())
                                 .customerId(customerId)
                                 .status(OrderStatus.PENDING)
-                                .orderNumber(orderNumber)
                                 .orderTime(LocalDateTime.now())
                                 .deliveryAddress(request.deliveryAddress())
-                                .recipientName(request.recipientName())
-                                .recipientPhone(request.recipientPhone())
                                 .note(request.note())
+                                .deliveryAddress(request.deliveryAddress())
                                 .build();
 
                 // 3. Tạo order items, tính tiền, trừ tồn kho
@@ -373,7 +354,6 @@ public class OrderServiceImpl implements OrderService {
 
                 return new CreateOrderResponse(
                                 savedOrder.getId(),
-                                savedOrder.getOrderNumber(),
                                 savedOrder.getStatus(),
                                 savedOrder.getOrderTime(),
                                 totalAmount,
@@ -381,118 +361,6 @@ public class OrderServiceImpl implements OrderService {
                                 savedOrder.getNote(),
                                 savedOrder.getDeliveryAddress());
         }
-
-        /*
-         * @Override
-         * 
-         * @Transactional
-         * public PaymentResponse processPayment(UUID orderId, PaymentRequest request,
-         * UUID customerId, String ipAddress) {
-         * OrderEntity order = orderRepository.findById(orderId)
-         * .orElseThrow(() -> new ApiException(OrderErrorCode.ORDER_NOT_FOUND));
-         * 
-         * if (!order.getCustomerId().equals(customerId)) {
-         * throw new ApiException(OrderErrorCode.ORDER_NOT_OWNED);
-         * }
-         * 
-         * if (order.getStatus() == OrderStatus.PAID) {
-         * throw new ApiException(OrderErrorCode.ORDER_ALREADY_PAID);
-         * }
-         * 
-         * BigDecimal orderTotal = order.getOrderItems().stream()
-         * .map(item ->
-         * item.getUnitPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
-         * .reduce(BigDecimal.ZERO, BigDecimal::add);
-         * 
-         * if (request.amount().compareTo(orderTotal) != 0) {
-         * throw new ApiException(PaymentErrorCode.PAYMENT_AMOUNT_MISMATCH);
-         * }
-         * 
-         * PaymentEntity payment = paymentRepository
-         * .findFirstByOrder_IdAndStatus(orderId, PaymentStatus.PENDING)
-         * .orElse(null);
-         * 
-         * if (payment == null) {
-         * payment = new PaymentEntity();
-         * payment.setOrder(order);
-         * payment.setPaymentMethod(request.paymentMethod());
-         * payment.setAmountPaid(request.amount());
-         * payment.setStatus(PaymentStatus.PENDING);
-         * payment.setTransactionId(UUID.randomUUID().toString());
-         * paymentRepository.save(payment);
-         * }
-         * 
-         * long amountRaw = request.amount().longValue();
-         * 
-         * if (request.paymentMethod() == PaymentMethod.VNPAY) {
-         * String payUrl = vnPayService.createPaymentUrl(
-         * orderId.toString(),
-         * amountRaw,
-         * payment.getTransactionId(),
-         * ipAddress != null ? ipAddress : "127.0.0.1");
-         * 
-         * order.setStatus(OrderStatus.PROCESSING);
-         * payment.setPaymentUrl(payUrl);
-         * orderRepository.save(order);
-         * paymentRepository.save(payment);
-         * 
-         * return new PaymentResponse(
-         * payment.getId(),
-         * order.getId(),
-         * payment.getPaymentMethod().toString(),
-         * payment.getAmountPaid(),
-         * payment.getStatus().toString(),
-         * order.getStatus(),
-         * payUrl,
-         * LocalDateTime.now().plusMinutes(15),
-         * LocalDateTime.now());
-         * }
-         * 
-         * if (request.paymentMethod() == PaymentMethod.MOMO) {
-         * MomoRequestType requestType = request.resolvedMomoRequestType();
-         * String payUrl = moMoPaymentService.createPaymentLink(
-         * orderId,
-         * amountRaw,
-         * "Thanh toan don hang #" + orderId,
-         * requestType.getMomoCode());
-         * 
-         * order.setStatus(OrderStatus.PROCESSING);
-         * payment.setPaymentUrl(payUrl);
-         * orderRepository.save(order);
-         * paymentRepository.save(payment);
-         * 
-         * return new PaymentResponse(
-         * payment.getId(),
-         * order.getId(),
-         * payment.getPaymentMethod().toString(),
-         * payment.getAmountPaid(),
-         * payment.getStatus().toString(),
-         * order.getStatus(),
-         * payUrl,
-         * LocalDateTime.now().plusMinutes(15),
-         * LocalDateTime.now());
-         * }
-         * 
-         * order.setStatus(OrderStatus.PAID);
-         * payment.setStatus(PaymentStatus.PAID);
-         * orderRepository.save(order);
-         * paymentRepository.save(payment);
-         * 
-         * orderTrackingService.sendTrackingUpdate(orderId, OrderStatus.PENDING,
-         * OrderStatus.PAID, customerId);
-         * 
-         * return new PaymentResponse(
-         * payment.getId(),
-         * order.getId(),
-         * payment.getPaymentMethod().toString(),
-         * payment.getAmountPaid(),
-         * payment.getStatus().toString(),
-         * order.getStatus(),
-         * null,
-         * null,
-         * LocalDateTime.now());
-         * }
-         */
 
 
         private static final int BASE_TIME_MINUTES = 3;
@@ -524,9 +392,7 @@ public class OrderServiceImpl implements OrderService {
                 OrderEntity order = orderRepository.findById(orderId)
                                 .orElseThrow(() -> new ApiException(OrderErrorCode.ORDER_NOT_FOUND));
                 boolean isAdmin = "ADMIN".equalsIgnoreCase(role);
-                boolean isManager = "MANAGER".equalsIgnoreCase(role);
-                boolean isPos = "POS".equalsIgnoreCase(role);
-                if (!isAdmin && !isManager && !isPos && !order.getStoreId().equals(currentUserStoreId)) {
+                if (!isAdmin && !order.getStoreId().equals(currentUserStoreId)) {
                         throw new ApiException(CommonErrorCode.FORBIDDEN,
                                         "You do not have permission to flag this order");
                 }
@@ -555,7 +421,8 @@ public class OrderServiceImpl implements OrderService {
         public OrderStatusResponse getStatus(UUID orderId, UUID userId, String role) {
                 OrderEntity order = orderRepository.findByIdWithCustomer(orderId)
                                 .orElseThrow(() -> new ApiException(OrderErrorCode.ORDER_NOT_FOUND));
-                // ADMIN, MANAGER and POS được xem mọi order; CUSTOMER chỉ xem order of mình
+                // ADMIN and MANAGER được xem mọi order; CUSTOMER chỉ xem order
+                // của mình
                 boolean canViewAnyOrder = "ADMIN".equalsIgnoreCase(role)
                                 || "MANAGER".equalsIgnoreCase(role)
                                 || "POS".equalsIgnoreCase(role);
@@ -576,11 +443,9 @@ public class OrderServiceImpl implements OrderService {
                         Optional<LocalDate> fromDate,
                         Optional<LocalDate> toDate,
                         String role) {
-                // Chỉ ADMIN, MANAGER và POS được dùng API lịch sử đơn hàng; CUSTOMER → 403
-                boolean isPrivileged = "ADMIN".equalsIgnoreCase(role)
-                                || "MANAGER".equalsIgnoreCase(role)
-                                || "POS".equalsIgnoreCase(role);
-                if (!isPrivileged) {
+                // Chỉ ADMIN và MANAGER được dùng API lịch sử đơn hàng; CUSTOMER
+                // → 403
+                if (!"ADMIN".equalsIgnoreCase(role) && !"MANAGER".equalsIgnoreCase(role)) {
                         throw new ApiException(CommonErrorCode.FORBIDDEN);
                 }
                 if (page < 1 || size < 1 || size > MAX_PAGE_SIZE) {
@@ -633,11 +498,8 @@ public class OrderServiceImpl implements OrderService {
                                         }
                                         return OrderHistoryItem.builder()
                                                         .id(o.getId())
-                                                        .orderNumber(o.getOrderNumber())
                                                         .totalAmount(amount)
                                                         .status(orderStatus)
-                                                        .recipientName(o.getRecipientName())
-                                                        .recipientPhone(o.getRecipientPhone())
                                                         .createdAt(o.getOrderTime())
                                                         .build();
                                 })
@@ -676,11 +538,11 @@ public class OrderServiceImpl implements OrderService {
                 order.setPayments(orderWithPayments.getPayments());
 
                 // 2. Ownership check: CUSTOMER can only view their own orders;
-                // ADMIN, MANAGER and POS can view any order
-                boolean isPrivileged = "ADMIN".equalsIgnoreCase(role)
+                // ADMIN and MANAGER can view any order
+                boolean isManager = "ADMIN".equalsIgnoreCase(role)
                                 || "MANAGER".equalsIgnoreCase(role)
                                 || "POS".equalsIgnoreCase(role);
-                if (!isPrivileged && !order.getCustomerId().equals(currentUserId))
+                if (!isManager && !order.getCustomerId().equals(currentUserId))
                         throw new ApiException(OrderErrorCode.ORDER_NOT_OWNED);
 
                 // 4. Build OrderItems
@@ -699,17 +561,11 @@ public class OrderServiceImpl implements OrderService {
                 return OrderDetailResponse.builder()
                                 .orderId(order.getId())
                                 .orderNumber(order.getOrderNumber())
-                                .storeId(order.getStoreId())
                                 .status(order.getStatus())
                                 .orderType(order.getOrderType())
                                 .orderTime(order.getOrderTime())
-                                .customer(OrderDetailResponse.CustomerInfo.builder()
-                                                .customerId(String.valueOf(order.getCustomerId()))
-                                                .recipientName(order.getRecipientName())
-                                                .recipientPhone(order.getRecipientPhone())
-                                                .deliveryAddress(order.getDeliveryAddress())
-                                                .build())
                                 .note(order.getNote())
+                                .deliveryAddress(order.getDeliveryAddress())
                                 .items(itemInfos)
                                 .pricing(OrderDetailResponse.PricingInfo.builder()
                                                 .subtotal(subtotal)
@@ -761,9 +617,8 @@ public class OrderServiceImpl implements OrderService {
                                 .status(OrderStatus.PENDING)
                                 .orderTime(LocalDateTime.now())
                                 .orderType("POS")
-                                .recipientName(request.recipientName())
-                                .recipientPhone(request.recipientPhone())
                                 .note(request.note())
+                                // .staffId(staffId) // Có thể thêm field này vào OrderEntity nếu cần tracking
                                 .build();
 
                 // 2. Tạo order items, tính tiền, trừ tồn kho (logic tương tự createOrder)

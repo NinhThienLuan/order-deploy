@@ -30,7 +30,7 @@ public class RefundController {
 
         /**
          * GET /v1/refunds/pending — Get all pending refund requests
-         * Only accessible by ADMIN and MANAGER
+         * Only accessible by FRANCHISE_ADMIN and STORE_MANAGER
          */
         @GetMapping("/pending")
         @Operation(summary = "Get pending refunds", description = "Returns all refund requests with PENDING status. Permission: ADMIN, MANAGER.")
@@ -51,7 +51,7 @@ public class RefundController {
 
         /**
          * PATCH /v1/refunds/{id}/approve — Approve a refund request
-         * Only accessible by ADMIN and MANAGER
+         * Only accessible by FRANCHISE_ADMIN and STORE_MANAGER
          */
         @PatchMapping("/{id}/approve")
         @Operation(summary = "Approve refund", description = "Approve a pending refund request and trigger the refund process. Permission: ADMIN, MANAGER.")
@@ -73,7 +73,7 @@ public class RefundController {
 
         /**
          * PATCH /v1/refunds/{id}/decline — Decline a refund request
-         * Only accessible by ADMIN and MANAGER
+         * Only accessible by FRANCHISE_ADMIN and STORE_MANAGER
          */
         @PatchMapping("/{id}/decline")
         @Operation(summary = "Decline refund", description = "Decline a pending refund request with a reason. Permission: ADMIN, MANAGER.")
