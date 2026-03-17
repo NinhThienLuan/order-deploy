@@ -5,19 +5,16 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
-/**
- * Response DTO for a single category.
- */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class CategoryResponse {
-    private UUID id;
+public class VariantIngredientResponse {
+    private UUID ingredientId;
     private String name;
-    private String description;
-    private UUID parentId;
-    private Boolean active;
+    private BigDecimal quantity;
+    private String unit;
 }

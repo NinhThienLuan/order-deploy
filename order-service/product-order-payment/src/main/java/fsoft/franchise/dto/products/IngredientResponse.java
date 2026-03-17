@@ -7,17 +7,11 @@ import lombok.NoArgsConstructor;
 
 import java.util.UUID;
 
-/**
- * Response DTO for a single category.
- */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class CategoryResponse {
+public class IngredientResponse {
     private UUID id;
     private String name;
-    private String description;
-    private UUID parentId;
-    private Boolean active;
 }

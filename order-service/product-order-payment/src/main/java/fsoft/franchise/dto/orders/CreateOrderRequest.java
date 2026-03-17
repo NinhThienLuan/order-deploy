@@ -11,7 +11,9 @@ import java.util.UUID;
 public record CreateOrderRequest(
                 @NotNull(message = "Store ID is required") UUID storeId,
                 @NotEmpty(message = "Order items must not be empty") @Valid List<OrderItemRequest> items,
-                @NotNull(message = "Delivery Address is required")String deliveryAddress,
+                @NotNull(message = "Delivery Address is required") String deliveryAddress,
+                String recipientName,
+                String recipientPhone,
                 String note) {
         public record OrderItemRequest(
                         @NotNull(message = "Product ID is required") UUID productId,

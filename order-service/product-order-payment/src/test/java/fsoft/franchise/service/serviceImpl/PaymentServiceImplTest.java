@@ -141,7 +141,7 @@
 // class GetPaymentsTests {
 
 // @Test
-// @DisplayName("Should return payments for FRANCHISE_ADMIN role")
+// @DisplayName("Should return payments for ADMIN role")
 // void shouldReturnPaymentsForFranchiseAdmin() {
 // // Given
 // Page<PaymentEntity> page = new PageImpl<>(List.of(payment));
@@ -154,7 +154,7 @@
 // // When
 // PaymentListResponse result = paymentService.getPayments(filterRequest,
 // customerId,
-// "FRANCHISE_ADMIN");
+// "ADMIN");
 
 // // Then
 // assertNotNull(result);
@@ -202,7 +202,7 @@
 // }
 
 // @Test
-// @DisplayName("Should include error message for FRANCHISE_ADMIN")
+// @DisplayName("Should include error message for ADMIN")
 // void shouldIncludeErrorMessageForFranchiseAdmin() {
 // // Given
 // payment.setVnpResponseCode("99"); // Failed — response code now lives on
@@ -217,7 +217,7 @@
 // // When
 // PaymentListResponse result = paymentService.getPayments(filterRequest,
 // customerId,
-// "FRANCHISE_ADMIN");
+// "ADMIN");
 
 // // Then
 // PaymentListResponse.PaymentRecord record = result.getData().get(0);
@@ -505,7 +505,7 @@
 // }
 
 // @Test
-// @DisplayName("Should recognize STORE_MANAGER as admin role")
+// @DisplayName("Should recognize MANAGER as admin role")
 // void shouldRecognizeStoreManagerAsAdminRole() {
 // // Given
 // Page<PaymentEntity> page = new PageImpl<>(List.of(payment));
@@ -518,7 +518,7 @@
 // // When
 // PaymentListResponse result = paymentService.getPayments(filterRequest,
 // customerId,
-// "STORE_MANAGER");
+// "MANAGER");
 
 // // Then
 // assertNotNull(result);
@@ -537,7 +537,7 @@
 // class GetPaymentStatusTests {
 
 // @Test
-// @DisplayName("Should return payment status for FRANCHISE_ADMIN")
+// @DisplayName("Should return payment status for ADMIN")
 // void shouldReturnPaymentStatusForAdmin() {
 // // Given
 // when(paymentRepository.findByOrder_IdOrderByPaymentDateDesc(orderId))
@@ -548,7 +548,7 @@
 // // When
 // PaymentStatusResponse result = paymentService.getPaymentStatus(orderId,
 // customerId,
-// "FRANCHISE_ADMIN");
+// "ADMIN");
 
 // // Then
 // assertNotNull(result);
@@ -591,7 +591,7 @@
 // }
 
 // @Test
-// @DisplayName("Should allow STORE_MANAGER to view any payment")
+// @DisplayName("Should allow MANAGER to view any payment")
 // void shouldAllowStoreManagerToViewAnyPayment() {
 // // Given
 // UUID strangerId = UUID.randomUUID();
@@ -603,12 +603,12 @@
 // // When
 // PaymentStatusResponse result = paymentService.getPaymentStatus(orderId,
 // strangerId,
-// "STORE_MANAGER");
+// "MANAGER");
 
 // // Then
 // assertNotNull(result);
 // assertEquals(orderId, result.getOrderId());
-// // STORE_MANAGER can view any payment
+// // MANAGER can view any payment
 // }
 
 // @Test
@@ -624,7 +624,7 @@
 // // When
 // PaymentStatusResponse result = paymentService.getPaymentStatus(orderId,
 // customerId,
-// "FRANCHISE_ADMIN");
+// "ADMIN");
 
 // // Then
 // assertNotNull(result);
@@ -643,7 +643,7 @@
 // // When
 // PaymentStatusResponse result = paymentService.getPaymentStatus(orderId,
 // customerId,
-// "FRANCHISE_ADMIN");
+// "ADMIN");
 
 // // Then
 // assertNotNull(result);

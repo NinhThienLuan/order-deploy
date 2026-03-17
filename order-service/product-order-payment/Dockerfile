@@ -35,5 +35,5 @@ EXPOSE 8081
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
     CMD sh -c "curl -f http://localhost:${PORT:-8081}/actuator/health || exit 1"
 
-# Run the application with configurable profile (cloud/prod/dev)
-ENTRYPOINT ["sh", "-c", "java -jar -Dspring.profiles.active=${SPRING_PROFILES_ACTIVE:-cloud} app.jar"]
+# Run the application with production profile
+ENTRYPOINT ["sh", "-c", "java -jar -Dspring.profiles.active=${SPRING_PROFILES_ACTIVE:-prod} app.jar"]

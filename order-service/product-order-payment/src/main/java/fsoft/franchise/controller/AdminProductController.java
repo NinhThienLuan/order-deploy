@@ -2,11 +2,11 @@ package fsoft.franchise.controller;
 
 import fsoft.franchise.common.response.ApiResponse;
 import fsoft.franchise.exception.CommonErrorCode;
-import fsoft.franchise.dto.products.ProductRequest;
-import fsoft.franchise.dto.products.ProductDetailResponse;
-import fsoft.franchise.dto.products.ProductSummaryResponse;
-import fsoft.franchise.dto.products.SetProductRecommendationRequest;
+import fsoft.franchise.dto.products.*;
+import fsoft.franchise.enums.ProductType;
+import fsoft.franchise.service.ProductImageService;
 import fsoft.franchise.service.ProductService;
+import fsoft.franchise.service.ProductVariantService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Admin product management endpoints — requires FRANCHISE_ADMIN role (enforced
+ * Admin product management endpoints — requires ADMIN role (enforced
  * via SecurityConfig).
  *
  * GET /admin/v1/products — paginated list (all products, not just active)
@@ -41,8 +41,8 @@ import java.util.UUID;
 public class AdminProductController {
 
         private final ProductService productService;
-        private final fsoft.franchise.service.ProductVariantService variantService;
-        private final fsoft.franchise.service.ProductImageService imageService;
+        private final ProductVariantService variantService;
+        private final ProductImageService imageService;
 
         @GetMapping
         @Operation(summary = "Get paginated product list (admin view)", description = "Permission: ADMIN.")
@@ -52,7 +52,7 @@ public class AdminProductController {
                         @RequestParam(name = "size", defaultValue = "12") int size,
                         @RequestParam(required = false) UUID categoryId,
                         @RequestParam(required = false) String search,
-                        @RequestParam(required = false) fsoft.franchise.enums.ProductType type,
+                        @RequestParam(required = false) ProductType type,
                         @RequestParam(required = false) Boolean active) {
 
                 int safeSize = Math.min(size, 100);
@@ -161,10 +161,10 @@ public class AdminProductController {
 
         @GetMapping("/{productId}/variants")
         @Operation(summary = "Get all variants of a product", description = "Permission: ADMIN.")
-        public ResponseEntity<ApiResponse<List<fsoft.franchise.dto.products.ProductVariantResponse>>> getVariants(
+        public ResponseEntity<ApiResponse<List<ProductVariantResponse>>> getVariants(
                         HttpServletRequest request,
                         @PathVariable("productId") UUID productId) {
-                return ResponseEntity.ok(ApiResponse.<List<fsoft.franchise.dto.products.ProductVariantResponse>>builder()
+                return ResponseEntity.ok(ApiResponse.<List<ProductVariantResponse>>builder()
                                 .code(200)
                                 .message("Get variants successfully")
                                 .result(variantService.getVariantsByProductId(productId))
@@ -175,12 +175,12 @@ public class AdminProductController {
 
         @PostMapping("/{productId}/variants")
         @Operation(summary = "Create a new variant for a product", description = "Permission: ADMIN.")
-        public ResponseEntity<ApiResponse<fsoft.franchise.dto.products.ProductVariantResponse>> createVariant(
+        public ResponseEntity<ApiResponse<ProductVariantResponse>> createVariant(
                         HttpServletRequest request,
                         @PathVariable("productId") UUID productId,
-                        @Valid @RequestBody fsoft.franchise.dto.products.ProductVariantRequest body) {
+                        @Valid @RequestBody ProductVariantRequest body) {
                 return ResponseEntity.status(HttpStatus.CREATED)
-                                .body(ApiResponse.<fsoft.franchise.dto.products.ProductVariantResponse>builder()
+                                .body(ApiResponse.<ProductVariantResponse>builder()
                                                 .code(201)
                                                 .message("Variant created successfully")
                                                 .result(variantService.createVariant(productId, body))
@@ -191,12 +191,12 @@ public class AdminProductController {
 
         @PutMapping("/{productId}/variants/{variantId}")
         @Operation(summary = "Update an existing variant", description = "Permission: ADMIN.")
-        public ResponseEntity<ApiResponse<fsoft.franchise.dto.products.ProductVariantResponse>> updateVariant(
+        public ResponseEntity<ApiResponse<ProductVariantResponse>> updateVariant(
                         HttpServletRequest request,
                         @PathVariable("productId") UUID productId,
                         @PathVariable("variantId") UUID variantId,
-                        @Valid @RequestBody fsoft.franchise.dto.products.ProductVariantRequest body) {
-                return ResponseEntity.ok(ApiResponse.<fsoft.franchise.dto.products.ProductVariantResponse>builder()
+                        @Valid @RequestBody ProductVariantRequest body) {
+                return ResponseEntity.ok(ApiResponse.<ProductVariantResponse>builder()
                                 .code(200)
                                 .message("Variant updated successfully")
                                 .result(variantService.updateVariant(productId, variantId, body))

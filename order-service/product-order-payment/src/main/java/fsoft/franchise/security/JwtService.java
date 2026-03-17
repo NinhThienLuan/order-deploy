@@ -101,18 +101,28 @@ public class JwtService {
      * Primary role for business logic: first "ROLE_xxx" in scope, with "ROLE_"
      * stripped.
      * E.g. scope "ROLE_ADMIN READ_ORDERS" → "ADMIN".
-     * Use this when comparing to FRANCHISE_ADMIN / STORE_MANAGER / CUSTOMER.
+     * Use this when comparing to ADMIN / MANAGER / CUSTOMER.
      */
     public String getPrimaryRole(String token) {
         String scope = getRole(token);
         if (scope == null || scope.isBlank())
             return null;
-        for (String s : scope.split(" ")) {
+        String[] parts = scope.split(" ");
+        // 1. Try to find one with ROLE_ prefix
+        for (String s : parts) {
             String trimmed = s.trim();
             if (trimmed.startsWith("ROLE_"))
                 return trimmed.substring(5);
         }
-        return null;
+        // 2. Fallback to common roles if no ROLE_ prefix exists
+        for (String s : parts) {
+            String trimmed = s.trim();
+            if (Arrays.asList("ADMIN", "MANAGER", "CUSTOMER", "POS").contains(trimmed)) {
+                return trimmed;
+            }
+        }
+        // 3. Last resort: first element
+        return parts[0].trim().startsWith("ROLE_") ? parts[0].trim().substring(5) : parts[0].trim();
     }
 
     /**

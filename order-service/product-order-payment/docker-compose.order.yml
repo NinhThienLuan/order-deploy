@@ -44,10 +44,6 @@ services:
       # JWT Config
       JWT_SECRET: ZGF5LWxhLWNodW9pLWJpLW1hdC1jdWEtYmFkbWludG9uLWRhdGUtcHJvamVjdA==
 
-      # External Service URLs (Feign)
-      INTEGRATION_FRANCHISE_STORE_BASE_URL: http://3.27.221.137:8080
-      INTEGRATION_INVENTORY_BASE_URL: http://3.27.221.137:8080
-
       # MoMo Config
       MOMO_PARTNER_CODE: MOMOLRJZ20181206
       MOMO_ACCESS_KEY: mTCKt9W3eU1m39TW

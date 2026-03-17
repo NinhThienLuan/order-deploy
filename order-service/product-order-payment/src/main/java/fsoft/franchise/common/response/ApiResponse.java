@@ -11,7 +11,7 @@ import java.time.Instant;
 import java.util.Map;
 
 @Data
-@SuperBuilder
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)

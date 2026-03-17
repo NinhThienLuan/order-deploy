@@ -10,7 +10,7 @@ import java.util.UUID;
  * Response body cho API PUT /v1/orders/{order_id}/status.
  *
  * <p>
- * Theo tài liệu: FRANCHISE_ADMIN, STORE_MANAGER cập nhật trạng thái đơn hàng.
+ * Theo tài liệu: ADMIN, MANAGER cập nhật trạng thái đơn hàng.
  * </p>
  */
 public record UpdateOrderStatusResponse(

@@ -32,6 +32,14 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
+    public List<CategoryResponse> getAdminCategories() {
+        return categoryRepository.findAllByDeleteAtIsNullOrderByNameAsc()
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @Override
     @Transactional
     public CategoryResponse createCategory(CategoryRequest request) {
         if (categoryRepository.existsByNameIgnoreCaseAndDeleteAtIsNull(request.getName().trim())) {
@@ -65,6 +73,10 @@ public class CategoryServiceImpl implements CategoryService {
         if (request.getParentId() != null) {
             entity.setParentId(request.getParentId());
         }
+
+        // Reactivate category on update as requested
+        entity.setActive(true);
+
         return toResponse(categoryRepository.save(entity));
     }
 
@@ -73,25 +85,20 @@ public class CategoryServiceImpl implements CategoryService {
     public void deleteCategory(UUID id) {
         CategoryEntity entity = categoryRepository.findById(id)
                 .orElseThrow(() -> new ApiException(ProductErrorCode.CATEGORY_NOT_FOUND));
+        
+        // Deactivate category only
         entity.setActive(false);
-        entity.setDeleteAt(LocalDateTime.now());
 
-        // Cascade soft-delete to products
+        // Cascade deactivation to products
         if (entity.getProducts() != null) {
             entity.getProducts().forEach(p -> {
-                if (p.getDeleteAt() == null) {
-                    p.setDeleteAt(LocalDateTime.now());
-                    p.setActive(false);
+                p.setActive(false);
 
-                    // Further cascade to variants
-                    if (p.getVariants() != null) {
-                        p.getVariants().forEach(v -> {
-                            if (v.getDeletedAt() == null) {
-                                v.setDeletedAt(LocalDateTime.now());
-                                v.setActive(false);
-                            }
-                        });
-                    }
+                // Cascade deactivation to variants
+                if (p.getVariants() != null) {
+                    p.getVariants().forEach(v -> {
+                        v.setActive(false);
+                    });
                 }
             });
         }
@@ -105,6 +112,7 @@ public class CategoryServiceImpl implements CategoryService {
                 .name(c.getName())
                 .description(c.getDescription())
                 .parentId(c.getParentId())
+                .active(c.getActive())
                 .build();
     }
 }

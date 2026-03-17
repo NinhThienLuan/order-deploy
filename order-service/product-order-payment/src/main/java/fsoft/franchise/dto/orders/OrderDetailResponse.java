@@ -23,12 +23,26 @@ public class OrderDetailResponse {
     private String orderType;
     private LocalDateTime orderTime;
     private UUID customerId;
+    private CustomerInfo customer;
     private List<OrderItemInfo> items;
     private PricingInfo pricing;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private String note;
     private String deliveryAddress;
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class CustomerInfo {
+        private String customerId;
+        private String customerName;
+        private String contactNumber;
+        private String recipientName;
+        private String recipientPhone;
+        private String deliveryAddress;
+    }
 
     @Data
     @Builder

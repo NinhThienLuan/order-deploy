@@ -18,13 +18,13 @@ public interface OrderService {
     public OrderDetailResponse getOrderDetail(String orderId, UUID currentUserId, String role);
 
     /**
-     * Get order status. Customer chỉ xem được order của mình; FRANCHISE_ADMIN và
-     * STORE_MANAGER xem được mọi order.
+     * Get order status. Customer chỉ xem được order của mình; ADMIN và
+     * MANAGER xem được mọi order.
      */
     OrderStatusResponse getStatus(UUID orderId, UUID userId, String role);
 
     /**
-     * Order History: pagination + filter. Chỉ FRANCHISE_ADMIN và STORE_MANAGER được
+     * Order History: pagination + filter. Chỉ ADMIN và MANAGER được
      * gọi.
      */
     OrderHistoryPage getOrderHistory(int page, int size,
@@ -41,6 +41,9 @@ public interface OrderService {
 
     /** Returns all possible order statuses. */
     List<OrderStatus> getOrderStatuses();
+
+    /** Returns all relevant enums for order creation/management. */
+    OrderEnumsResponse getOrderEnums();
 
     CreateOrderResponse createOrder(CreateOrderRequest request, UUID customerId);
 

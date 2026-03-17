@@ -2,6 +2,7 @@ package fsoft.franchise.serviceImpl;
 
 import fsoft.franchise.common.exception.ApiException;
 import fsoft.franchise.exception.OrderErrorCode;
+import fsoft.franchise.dto.orders.OrderHistoryItem;
 import fsoft.franchise.dto.payments.OrderTrackingDTO;
 import fsoft.franchise.dto.payments.OrderTrackingTimelineDTO;
 import fsoft.franchise.dto.payments.UpdateOrderStatusResponse;
@@ -124,12 +125,32 @@ public class OrderTrackingServiceImpl implements OrderTrackingService {
                                 .message(STATUS_MESSAGES.getOrDefault(newStatus, "Trạng thái đơn hàng đã thay đổi"))
                                 .updatedAt(LocalDateTime.now())
                                 .updatedBy(updatedBy)
+                                .type(previousStatus == null ? "NEW_ORDER" : "STATUS_UPDATE")
                                 .build();
 
-                String destination = "/topic/orders/" + orderId;
-                messagingTemplate.convertAndSend(destination, trackingDTO);
+                // Enrich with order details for dashboard live-update
+                if (order != null) {
+                        trackingDTO.setOrder(OrderHistoryItem.builder()
+                                        .id(order.getId())
+                                        .orderNumber(order.getOrderNumber())
+                                        .totalAmount(order.getTotalAmount())
+                                        .status(order.getStatus())
+                                        .recipientName(order.getRecipientName())
+                                        .recipientPhone(order.getRecipientPhone())
+                                        .createdAt(order.getOrderTime())
+                                        .build());
+                }
 
-                log.info("Tracking update sent: order={}, {} -> {}", orderId, previousStatus, newStatus);
+                // Broadcast to specific order topic (for detail page tracking)
+                String specificDestination = "/topic/orders/" + orderId;
+                messagingTemplate.convertAndSend(specificDestination, trackingDTO);
+
+                // Broadcast to global orders topic (for admin dashboard live-update)
+                String globalDestination = "/topic/orders";
+                messagingTemplate.convertAndSend(globalDestination, trackingDTO);
+
+                log.info("Tracking update sent to {} and {}: order={}, {} -> {}", 
+                        specificDestination, globalDestination, orderId, previousStatus, newStatus);
         }
 
         // ======================== 2. UPDATE STATUS (ADMIN) ========================

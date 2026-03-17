@@ -36,7 +36,7 @@ public class DataInit implements CommandLineRunner {
 
     // ─── Account UUIDs (for reference - accounts managed by auth-service)
     // ───────────────────────────────────────────────────────────────
-    public static final UUID ACC_FRANCHISE_ADMIN_ID = UUID.fromString("00000000-0000-0000-0002-000000000001");
+    public static final UUID ACC_ADMIN_ID = UUID.fromString("00000000-0000-0000-0002-000000000001");
     public static final UUID ACC_MANAGER_HCM1_ID = UUID.fromString("00000000-0000-0000-0002-000000000002");
     public static final UUID ACC_MANAGER_HCM2_ID = UUID.fromString("00000000-0000-0000-0002-000000000003");
     public static final UUID ACC_CUSTOMER_1_ID = UUID.fromString("00000000-0000-0000-0002-000000000004");

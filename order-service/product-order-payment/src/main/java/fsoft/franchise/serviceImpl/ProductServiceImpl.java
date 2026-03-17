@@ -6,6 +6,7 @@ import fsoft.franchise.dto.products.ProductRequest;
 import fsoft.franchise.dto.products.ProductDetailResponse;
 import fsoft.franchise.dto.products.ProductSummaryResponse;
 import fsoft.franchise.dto.products.ProductVariantResponse;
+import fsoft.franchise.dto.products.VariantIngredientResponse;
 import fsoft.franchise.entity.CategoryEntity;
 import fsoft.franchise.entity.ProductEntity;
 import fsoft.franchise.entity.ProductImageEntity;
@@ -137,12 +138,46 @@ public class ProductServiceImpl implements ProductService {
         }
 
         @Override
-        @Transactional
-        public ProductDetailResponse toggleActive(UUID id) {
-                ProductEntity product = getNonDeletedProductOrThrow(id);
-                product.setActive(!Boolean.TRUE.equals(product.getActive()));
-                return toDetail(productRepository.save(product));
+    @Transactional
+    public ProductDetailResponse toggleActive(UUID id) {
+        ProductEntity product = getNonDeletedProductOrThrow(id);
+        boolean newStatus = !Boolean.TRUE.equals(product.getActive());
+
+        if (newStatus) {
+            List<String> missing = new ArrayList<>();
+            if (product.getName() == null || product.getName().isBlank()) missing.add("name");
+            if (product.getDescription() == null || product.getDescription().isBlank()) missing.add("description");
+            
+            if (product.getCategory() == null) {
+                missing.add("category");
+            } else if (!Boolean.TRUE.equals(product.getCategory().getActive())) {
+                throw new ApiException(ProductErrorCode.PRODUCT_INCOMPLETE, 
+                    "Cannot activate product because the category '" + product.getCategory().getName() + "' is currently inactive.");
+            }
+
+            if (product.getImages() == null || product.getImages().isEmpty()) missing.add("images");
+            
+            boolean hasVariants = product.getVariants() != null && product.getVariants().stream()
+                .anyMatch(v -> v.getDeletedAt() == null);
+            if (!hasVariants) missing.add("variants");
+
+            if (!missing.isEmpty()) {
+                throw new ApiException(ProductErrorCode.PRODUCT_INCOMPLETE, 
+                    "Product lacks required info: " + String.join(", ", missing));
+            }
         }
+
+        product.setActive(newStatus);
+        
+        // Cascade status to variants
+        if (product.getVariants() != null) {
+            product.getVariants().stream()
+                .filter(v -> v.getDeletedAt() == null)
+                .forEach(v -> v.setActive(newStatus));
+        }
+
+        return toDetail(productRepository.save(product));
+    }
 
         @Override
         @Transactional
@@ -236,7 +271,7 @@ public class ProductServiceImpl implements ProductService {
         }
 
         private ProductDetailResponse toDetail(ProductEntity p) {
-                List<ProductVariantResponse> variants = p.getVariants() == null ? List.of()
+                List<ProductVariantResponse> variants = p.getVariants() == null ? new ArrayList<ProductVariantResponse>()
                                 : p.getVariants().stream()
                                                 .filter(v -> Boolean.TRUE.equals(v.getActive())
                                                                 && v.getDeletedAt() == null)
@@ -246,6 +281,18 @@ public class ProductServiceImpl implements ProductService {
                                                                 .sizeName(v.getSizeName())
                                                                 .price(v.getPrice())
                                                                 .active(v.getActive())
+                                                                .ingredients(v.getIngredients() == null ? new ArrayList<VariantIngredientResponse>()
+                                                                                : v.getIngredients().stream()
+                                                                                                .map(i -> VariantIngredientResponse
+                                                                                                                .builder()
+                                                                                                                .ingredientId(i.getIngredient()
+                                                                                                                                .getId())
+                                                                                                                .name(i.getIngredient()
+                                                                                                                                .getName())
+                                                                                                                .quantity(i.getQuantity())
+                                                                                                                .unit(i.getUnit())
+                                                                                                                .build())
+                                                                                                .toList())
                                                                 .build())
                                                 .toList();
 

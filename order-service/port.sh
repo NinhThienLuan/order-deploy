@@ -1,1 +1,0 @@
-netstat -an | grep :8080

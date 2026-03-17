@@ -33,6 +33,12 @@ public class OrderEntity extends BaseEntity {
     private String orderNumber;
     private String deliveryAddress;
 
+    @Column(name = "recipient_name")
+    private String recipientName;
+
+    @Column(name = "recipient_phone")
+    private String recipientPhone;
+
     @Column(name = "store_id")
     private UUID storeId;
 
