@@ -2,6 +2,7 @@ package fsoft.franchise.security;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.io.DecodingException;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import jakarta.servlet.http.Cookie;
@@ -13,6 +14,7 @@ import org.springframework.web.util.WebUtils;
 
 import javax.crypto.SecretKey;
 // import java.sql.Date;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -28,8 +30,26 @@ public class JwtService {
     // nap secret Key vao trong JwtUtil
     public JwtService(JwtProperties props) {
         this.props = props;
-        byte[] secretBytes = Decoders.BASE64.decode(props.secret());
+        byte[] secretBytes = decodeSecret(props.secret());
         this.key = Keys.hmacShaKeyFor(secretBytes);
+    }
+
+    private byte[] decodeSecret(String secret) {
+        if (!StringUtils.hasText(secret)) {
+            throw new IllegalStateException("app.jwt.secret must not be blank");
+        }
+
+        try {
+            return Decoders.BASE64.decode(secret);
+        } catch (DecodingException ignored) {
+        }
+
+        try {
+            return Decoders.BASE64URL.decode(secret);
+        } catch (DecodingException ignored) {
+        }
+
+        return secret.getBytes(StandardCharsets.UTF_8);
     }
 
     public String getTokenFromCookie(HttpServletRequest request) {
